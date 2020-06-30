@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<!--
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<html lang="en">
+
+<head>
+	<title>ErosWeb – sub</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script>
+		// Redirect to HTTPS if HTTP is requested.
+		if (window.location.protocol === 'http:') {
+			window.location.href = 'https:' + window.location.href.substring(5);
+		}
+	</script>
+	<link rel="stylesheet" href="css/theme.css" />
+	<link rel="stylesheet" href="css/app.css" />
+	<script src="js/uikit.js" defer></script>
+	<script src="js/uikit-icons.min.js" defer></script>
+	<script type="module" src="script-sub.js" defer></script>
+	<script type="module" src="ET312.js" defer></script>
+	<script type="module" src="ET312Controller.js" defer></script>
+	<script type="module" src="js/audio2.js" defer></script>
+	<script src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js"></script>
+</head>
+
+<body>
+	<div uk-height-viewport="expand: true">
+		<div class="uk-navbar-container sub">
+			<div id="heading" class="uk-navbar">
+				<div class="uk-navbar-left">
+					<span class="uk-navbar-item uk-logo">ErosWeb – ET-312 Remote Control</span>
+				</div>
+				<div class="uk-navbar-right">
+					<a href="#pnlConfigAV" class="uk-icon" uk-icon="cog" uk-toggle uk-tooltip="Configure audio output, camera, and microphone."></a>
+					<span class="uk-navbar-item"><b>sub</b>&nbsp;Mode</span>
+				</div>
+			</div>
+		</div>
+
+		<div id="notSupported" hidden class="uk-container uk-padding-small">
+			<div uk-alert class="uk-card uk-card-default uk-card-body uk-alert-danger">
+				<p>
+					Sorry, <b>Web Serial</b> is not supported on this device or browser.
+				</p>
+				<p>
+					Make sure you're running Chrome 78 or later. Then, go to
+					<code>chrome://flags</code>, search for "Experimental Web
+					Platform features" and make sure that feature is enabled.
+				</p>
+			</div>
+		</div>
+
+		<div id="appUi" class="uk-inline" uk-height-viewport="offset-top: true">
+
+			<div id="pnlSessionControl" class="uk-card uk-card-small uk-card-body uk-form-horizontal uk-width-1-1 uk-padding-remove-bottom">
+				<input id="inputName" class="uk-input uk-width-1-5" type="text" placeholder="Name">
+				<input id="inputPIN" class="uk-input" type="number" min="0" max="9999" maxlength="4" placeholder="PIN">
+				<button id="butPresent" type="button" class="uk-button uk-button-default">Present</button>
+				<button id="butShare" type="button" class="uk-button uk-button-default">Share Audio/Video</button>
+				<!-- <button id="butStatus" type="button" class="uk-button" disabled>Status</button> -->
+			</div>
+
+			<div class="uk-width-1-6 uk-box-shadow-medium uk-margin-small uk-position-small uk-position-top-right uk-position-z-index">
+				<video id="localVideo" autoplay muted="true">
+					Sorry, your browser doesn't support embedded videos.
+				</video>
+				<div class="uk-overlay uk-overlay-default uk-position-center uk-padding-remove">
+					<span class="uk-icon-link" uk-icon="icon: video-camera; ratio: 2"></span>
+				</div>
+			</div>
+
+			<div uk-grid class="uk-grid-collapse" uk-height-viewport="offset-top: true">
+
+				<form id="controls" class="uk-card uk-card-small uk-card-body uk-form-horizontal uk-width-2-5 uk-padding-remove-right uk-padding-remove-top">
+
+					<div id="pnlSessionId" class="uk-text-middle uk-margin-small-top uk-invisible">
+						<span class="uk-text-middle">Your session ID is: </span>
+						<span id="sessionId" class="uk-text-middle uk-text-secondary"></span>
+						<a id="butLinkCopy" href="" class="uk-margin-small-left uk-text-middle uk-text-small uk-text-uppercase">Copy Link</a>
+						<!-- <button id="butLinkCopy" type="button" class="uk-button uk-button-link uk-margin-small-left">Copy Link</button> -->
+					</div>
+
+					<div class="uk-margin-small">
+						<button id="butConnect" type="button" class="uk-button uk-button-default">Connect to ET-312</button>
+						<button id="butStatus" type="button" class="uk-button">Status</button>
+						<span id="iconLink" class="uk-icon" uk-icon="link" uk-tooltip="Indicates Dom connected and ErosWeb override of the ET-312 front-panel controls"></span>
+						<span id="iconEstimAudio" uk-tooltip="Indicates Dom can provide estim audio content">
+							<img uk-svg width="20" height="20" viewBox="0 0 20 20" src="./speaker.svg" />
+						</span>
+						<!-- <span id="iconPresent" class="uk-icon disconnected" uk-icon="bolt"></span> -->
+					</div>
+
+					<pre id="log" class="uk-margin-remove uk-overflow-auto"></pre>
+
+					<!-- <div id="chatUI" class="uk-margin-small">
+						<input class="uk-input uk-width-4-5" type="text" placeholder="Message">
+						<button id="butSendMessage" type="button" class="uk-button uk-button-small uk-width-1-6">Send</button>
+					</div> -->
+
+				</form>
+
+				<div id="statusArea" class="uk-width-3-5 uk-card uk-card-small uk-card-body uk-padding-remove-top">
+
+					<div id="pnlSession" class="uk-text-middle uk-margin-small-top">
+						<span id="domName" class="uk-text-middle uk-text-bold uk-text-secondary"></span>
+						<span class="uk-text-middle"> is connected.</span>
+					</div>
+
+					<div class="uk-inline uk-width-1-1 uk-box-shadow-medium uk-margin-small uk-align-right">
+						<video id="remoteVideo" uk-height-viewport="offset-top: true; offset-bottom: true">
+							Sorry, your browser doesn't support embedded videos.
+						</video>
+						<div class="uk-overlay uk-overlay-default uk-position-center">
+							<span class="uk-icon-link" uk-icon="icon: user; ratio: 4"></span>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- Slide-in area for adjusting audio and video settings -->
+		<div id="pnlConfigAV" uk-offcanvas="overlay: true">
+			<div class="uk-offcanvas-bar">
+				<button class="uk-offcanvas-close" type="button" uk-close></button>
+
+				<h3 class="uk-margin-remove-top">E-stim Audio Output</h3>
+				<p class="uk-margin-remove">Connect this output to the ET-312 "Audio" input.</p>
+				<div id="estimAudioDest">
+					<div uk-form-custom="target: > * > span:last-child">
+						<select>
+						</select>
+						<span class="uk-link">
+							<span uk-icon="icon: sign-out"></span>
+							<span></span>
+						</span>
+					</div>
+				</div>
+				<span class="uk-label click">Test</span>
+
+				<h3>Communications Settings</h3>
+				<p class="uk-text-emphasis uk-margin-remove-bottom">Audio Output</p>
+				<div id="localAudioDest">
+					<div uk-form-custom="target: > * > span:last-child">
+						<select uk-tooltip="Select output device">
+						</select>
+						<span class="uk-link">
+							<span uk-icon="icon: receiver"></span>
+							<span></span>
+						</span>
+					</div>
+				</div>
+				<span class="uk-label click">Test</span>
+
+				<p class="uk-text-emphasis uk-margin-remove-bottom">Camera</p>
+				<div id="cameraInput">
+					<div uk-form-custom="target: > * > span:last-child">
+						<select uk-tooltip="Select output device">
+						</select>
+						<span class="uk-link">
+							<span uk-icon="icon: video-camera"></span>
+							<span></span>
+						</span>
+					</div>
+				</div>
+
+				<p class="uk-text-emphasis uk-margin-remove-bottom">Microphone</p>
+				<div id="microphoneInput">
+					<div uk-form-custom="target: > * > span:last-child">
+						<select uk-tooltip="Select output device">
+						</select>
+						<span class="uk-link">
+							<span uk-icon="icon: microphone"></span>
+							<span></span>
+						</span>
+					</div>
+				</div>
+				<span class="uk-label click">Test</span>
+				<progress id="microphoneLevel" value="0" max="100" hidden />
+
+			</div>
+		</div>
+
+
+		<!-- MODAL DIALOGS -->
+		<div class="alert">
+			<div class="connectionLost">
+				<!-- `<div class="uk-modal-body"> -->
+				<b>Connection Lost</b>
+				<p>The connection to the ET-312 has been interrupted.</p>
+				<ol>
+					<li>Check the serial connection to the ET-312 box.</li>
+					<li>Reset the ET-312 by turning it off and then on again.</li>
+					<li>Try to reconnect.</li>
+				</ol>
+			</div>
+
+			<div class="noConnect">
+				<b>Could not connect to ET-312</b>
+				<ul>
+					<li>Make sure that you selected the correct serial port.</li>
+					<li>Make sure the ET-312 is turned on.</li>
+					<li>Reset the ET-312 by turning it off and on again.</li>
+				</ul>
+			</div>
+
+		<div class="mediaMissing">
+			<b class="uk-text-danger">Missing Media Device</b>
+			<p>ErosWeb was not able to access an audio or video device needed for sharing.</p>
+			<ul>
+				<li>Make sure your webcam or other device is connected and turned on.</li>
+				<li>If using a built-in camera, make sure it is enabled.</li>
+				<li>Check your communication settings (click on the <span class="uk-icon" uk-icon="cog"></span>
+					icon in the page header).</li>
+				<li>Is your laptop open?</li>
+			</ul>
+		</div>
+
+		<div class="GUMCoach">
+			<h3 class="uk-modal-title uk-text-danger">Device Access Blocked</h3>
+			<p>ErosWeb cannot share audio and video because you have blocked access to the
+				camera and/or microphone.  Fix this by adjusting the security settings in your browser:</p>
+			<ul>
+				<li><b>Google Chrome</b>
+					<ol>
+						<li>Navigate to <code>chrome://settings/content</code></li>
+						<li>Check both the "microphone" and "camera" sections</li>
+						<li>Reset permissions for the site
+							<code>
+								<script type="text/javascript">
+									document.write(document.location.origin);
+								</script>
+							</code>
+						</li>
+					</ol>
+				</li>
+				<li><b>Safari on Mac (MacOS)</b>: go to the <code>Safari | Settings for This Website...</code> menu.</li>
+				<li><b>Safari on iOS</b>: access "Website Settings" via the "<b><span style="font-size: 75%">A</span>A</b>"
+				button in the address bar.</li>
+			</ul>
+		</div>
+
+		<!-- Modal dialog to coach the user on enabling access to A/V devices
+		<div class="GUMCoach">
+			<div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical">
+				<h3 class="uk-modal-title">Please allow access to the microphone</h3>
+				<p>Your browser will prompt you to allow access to your
+					computer's microphone after you click "OK" on this page. Please
+					respond with "allow" to enable output source selection.
+				</p>
+				<p class="uk-text-meta">ErosWeb "solo" mode does not actually use the microphone.
+					However, all the discrete audio devices on your system –
+					including output devices like speakers and headsets –
+					are bundled together with the microphone for security purposes.
+					Granting access to the microphone enables ErosWeb to use those
+					additional output devices.
+				</p>
+				<p class="uk-text-meta"><b>If you do not see a dialog</b>, you may have accidentally
+					blocked access to the microphone already. Go to the security settings in
+					your browser (in Google Chrome, this is
+					<code>chrome://settings/content/microphone</code>) and reset
+					permissions for the site "<code class="origin">${document.location.origin}</code>".
+				</p>
+				<p class="uk-text-right">
+					<button class="uk-button uk-button-primary" type="button">Continue</button>
+				</p>
+			</div>
+		</div>
+	-->
+	</div>
+
+</body>
+
+</html>

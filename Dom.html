@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>ErosWeb – Dom</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script>
+		// Redirect to HTTPS if HTTP is requested.
+		if (window.location.protocol === 'http:') {
+			window.location.href = 'https:' + window.location.href.substring(5);
+		}
+	</script>
+	<link rel="stylesheet" href="css/theme.css" />
+	<link rel="stylesheet" href="css/app.css" />
+	<script src="js/lib/uikit.min.js" defer></script>
+	<script src="js/lib/uikit-icons.min.js" defer></script>
+	<script type="module" src="js/script-Dom.js" defer></script>
+	<script type="module" src="js/ET312.js" defer></script>
+	<script type="module" src="js/ET312Remote.js" defer></script>
+	<!-- <script type="module" src="js/audio2.js" defer></script> -->
+	<script src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js" defer></script>
+
+</head>
+
+<body>
+	<div uk-height-viewport="expand: true">
+		<div class="uk-navbar-container Dom">
+			<div id="heading" class="uk-navbar">
+				<div class="uk-navbar-left">
+					<span class="uk-navbar-item uk-text-lead">ErosWeb – ET-312 Remote Control</span>
+				</div>
+				<div class="uk-navbar-right">
+					<a href="#pnlConfigAV" class="uk-icon" uk-icon="cog" uk-toggle uk-tooltip="Configure audio output, camera, and microphone."></a>
+					<span class="uk-navbar-item"><b>Dom</b>&nbsp;Mode</span>
+				</div>
+			</div>
+		</div>
+
+		<div id="appUi" class="uk-inline" uk-height-viewport="offset-top: true" hidden="true">
+
+			<div id="pnlSessionControl" class="uk-card uk-card-small uk-card-body uk-form-horizontal uk-width-1-1">
+				<input id="inputName" class="uk-input uk-width-1-5" type="text" placeholder="Name">
+				<input id="inputSId" class="uk-input uk-width-1-6" type="text" placeholder="Session ID">
+				<input id="inputPIN" class="uk-input" type="number" min="0" max="9999" maxlength="4" placeholder="PIN">
+				<button id="butConnect" type="button" class="uk-button uk-button-default">Connect</button>
+				<button id="butShare" type="button" class="uk-button uk-button-default">Share Audio/Video</button>
+				<!-- <button id="butStatus" type="button" class="uk-button" disabled>Status</button> -->
+			</div>
+
+			<div class="uk-width-1-6 uk-box-shadow-medium uk-margin-small uk-position-small uk-position-top-right uk-position-z-index">
+				<video id="localVideo" autoplay muted="true">
+					Sorry, your browser doesn't support embedded videos.
+				</video>
+				<div class="uk-overlay uk-overlay-default uk-position-center uk-padding-remove">
+					<span class="uk-icon-link" uk-icon="icon: video-camera; ratio: 2"></span>
+				</div>
+			</div>
+
+			<div uk-grid class="uk-grid-collapse" uk-height-viewport="offset-top: true">
+
+				<form id="controls" class="uk-card uk-card-small uk-card-body uk-form-horizontal uk-width-2-5 uk-padding-remove-right uk-padding-remove-top">
+
+					<div id="controlsOnline">
+						<div id="modeArray" uk-grid class="uk-grid-collapse uk-child-width-1-3 uk-grid">
+							<button class="uk-button uk-padding-remove uk-button-danger" value="0">Stop!</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="118">Waves</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="119">Stroke</button>
+
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="120">Climb</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="121">Combo</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="122">Intense</button>
+
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="123">Rhythm</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="128">Random1</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="129">Random2</button>
+
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="130">Toggle</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="131">Orgasm</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="132">Torment</button>
+
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="133">Phase 1</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="134">Phase 2</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="135">Phase 3</button>
+
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="124">Audio 1</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="125">Audio 2</button>
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="126">Audio 3</button>
+
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="127">Split</button>
+							<div uk-form-custom="target: > * > span:first-child">
+								<select id="selSplitA">
+									<option value="" disabled></option>
+								</select>
+								<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
+									<span></span>
+									<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
+								</button>
+							</div>
+							<div uk-form-custom="target: > * > span:first-child">
+								<select id="selSplitB">
+									<option value="" disabled></option>
+								</select>
+								<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
+									<span></span>
+									<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
+								</button>
+							</div>
+						</div>
+
+						<!-- Analog-to-digital controls on the box -->
+						<div id="levelMultiAdjust" class="uk-margin-top uk-grid-collapse uk-grid" uk-grid>
+							<div class="uk-width-1-5">
+								<label class="uk-form-label">Multi-Adjust</label>
+							</div>
+							<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
+							<input class="uk-range uk-width-expand" type="range" />
+							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
+						</div>
+						<div id="levelA" class="uk-margin-small-top uk-grid-collapse uk-grid" uk-grid>
+							<div class="uk-width-1-5">
+								<label class="uk-form-label" for="levelA">Level A<span class="uk-badge uk-margin-small-left"></span></label>
+							</div>
+							<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
+							<input class="uk-range uk-width-expand" type="range" min="0" max="99" />
+							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
+						</div>
+						<div id="levelB" class="uk-margin-small-top uk-grid-collapse uk-grid" uk-grid>
+							<div class="uk-width-1-5">
+								<label class="uk-form-label" for="levelB">Level B<span class="uk-badge uk-margin-small-left"></span></label>
+							</div>
+							<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
+							<input class="uk-range uk-width-expand" type="range" min="0" max="99" />
+							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
+						</div>
+					</div>
+
+					<div id="dropTarget" class="uk-placeholder uk-text-center uk-text-top uk-padding-remove uk-cover-container">
+
+						<div id="fileName" class="uk-margin-small uk-float-left uk-text-meta gotFile">abc.mp3</div>
+
+						<audio id="localAudio" title="local audio file" controls controlsList="nodownload" class="uk-width-1-1">
+							This browser does not support the audio element.
+						</audio>
+
+						<div class="uk-child-width-1-3 uk-grid" uk-grid>
+							<label><input class="uk-checkbox loop" type="checkbox"> Loop</label>
+							<label><input class="uk-checkbox autoplay" type="checkbox"> Autoplay</label>
+							<label><input class="uk-checkbox monitor" type="checkbox" id="ckMonitor"> Monitor</label>
+						</div>
+
+						<div class="preCover uk-text-meta uk-overlay uk-overlay-default uk-position-cover">
+							<span uk-icon="icon: pull"></span>
+							<span class="uk-text-middle">Drop <span class="gotFile">an audiostim file here</span> or </span>
+							<div uk-form-custom>
+								<input type="file">
+								<span class="uk-link uk-margin-small-right uk-text-middle">select<span class="gotFile"> one</span></span>
+							</div>
+						</div>
+
+					</div>
+				</form>
+
+				<div id="statusArea" class="uk-width-3-5 uk-card uk-card-small uk-card-body uk-padding-remove-top">
+
+					<div id="pnlSession" class="uk-margin-small">
+						<!-- <span class="uk-icon connected" uk-icon="link"></span> -->
+						<span id="verb" class="uk-text-middle">Connected to</span>
+						<span id="subName" class="uk-text-middle uk-text-bold uk-text-secondary"></span>
+					</div>
+
+					<div class="uk-inline uk-width-1-1 uk-box-shadow-medium">
+						<video id="remoteVideo" uk-height-viewport="offset-top: true; offset-bottom: true">
+							Sorry, your browser doesn't support embedded videos.
+						</video>
+						<div class="uk-overlay uk-overlay-default uk-position-center">
+							<span class="uk-icon-link" uk-icon="icon: user; ratio: 4"></span>
+						</div>
+					</div>
+
+					<!-- <pre id="log" class="uk-overflow-auto"></pre> -->
+
+					<!-- <div id="chatUI" class="uk-margin-small uk-invisible">
+						<input class="uk-input uk-width-4-5" type="text" placeholder="Message">
+						<button id="butSendMessage" type="button" class="uk-button uk-button-small uk-width-1-6">Send</button> -->
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	</div>
+
+	<!-- Slide-in area for adjusting audio and video settings -->
+	<div id="pnlConfigAV" uk-offcanvas="overlay: true">
+		<div class="uk-offcanvas-bar">
+			<button class="uk-offcanvas-close" type="button" uk-close></button>
+
+			<h3>Communications Settings</h3>
+			<p class="uk-text-emphasis uk-margin-remove-bottom">Audio Output</p>
+			<div id="localAudioDest">
+				<div uk-form-custom="target: > * > span:last-child">
+					<select>
+					</select>
+					<span class="uk-link">
+						<span uk-icon="icon: receiver"></span>
+						<span></span>
+					</span>
+				</div>
+			</div>
+			<span class="uk-label click">Test</span>
+
+			<p class="uk-text-emphasis uk-margin-remove-bottom">Camera</p>
+			<div id="cameraInput">
+				<div uk-form-custom="target: > * > span:last-child">
+					<select>
+					</select>
+					<span class="uk-link">
+						<span uk-icon="icon: video-camera"></span>
+						<span></span>
+					</span>
+				</div>
+			</div>
+
+			<p class="uk-text-emphasis uk-margin-remove-bottom">Microphone</p>
+			<div id="microphoneInput">
+				<div uk-form-custom="target: > * > span:last-child">
+					<select>
+					</select>
+					<span class="uk-link">
+						<span uk-icon="icon: microphone"></span>
+						<span></span>
+					</span>
+				</div>
+			</div>
+			<span class="uk-label click">Test</span>
+			<progress id="microphoneLevel" value="0" max="100" hidden />
+
+		</div>
+	</div>
+
+	<!-- Modal Dialogs -->
+	<div class="alert">
+		<div class="connectionRefused">
+			<b class="uk-text-warning">Connection Refused</b>
+			<ul>
+				<li>Verify the PIN or URL for this session with the sub.</li>
+				<li>Check that the PIN is entered correctly.</li>
+			</ul>
+		</div>
+
+		<div class="connectionFailed">
+
+			<b class="uk-text-danger">Connection Failed</b>
+			<ul>
+				<li>Verify the URL for this session with the sub.</li>
+				<li>Check that the Session ID is correct.</li>
+				<li>Make sure the sub is still presenting themselves for control by a remote user.</li>
+			</ul>
+		</div>
+
+		<div class="mediaMissing">
+			<b class="uk-text-danger">Missing Media Device</b>
+			<p>ErosWeb was not able to access an audio or video device needed for sharing.</p>
+			<ul>
+				<li>Make sure your webcam or other device is connected and turned on.</li>
+				<li>If using a built-in camera, make sure it is enabled.</li>
+				<li>Check your communication settings (click on the <span class="uk-icon" uk-icon="cog"></span>
+					icon in the page header).</li>
+				<li>Is your laptop open?</li>
+			</ul>
+		</div>
+
+		<!-- Modal dialog to coach the user on enabling access to A/V devices -->
+		<div class="GUMCoach">
+			<h3 class="uk-modal-title uk-text-danger">Device Access Blocked</h3>
+			<p>ErosWeb cannot share audio and video because you have blocked access to the
+				camera and/or microphone.</p>
+			<p>To fix this, go to the security settings in your browser:</p>
+			<ul>
+				<li>In <b>Google Chrome</b>
+					<ol>
+						<li>Navigate to <code>chrome://settings/content</code></li>
+						<li>Check both the "microphone" and "camera" sections</li>
+						<li>Reset permissions for the site
+							<code textContent="document.location.origin">
+							</code>
+						</li>
+					</ol>
+				</li>
+				<li>In <b>Safari</b>, go to the <code>Safari | Settings for This Website...</code> menu on MacOS,
+				or access "Website Settings" via the "<b><span style="font-size: 75%">A</span></b>A" button in the address bar on iOS.</li>
+			</ul>
+		</div>
+	</div>
+
+</body>
+
+</html>

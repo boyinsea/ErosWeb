@@ -1,0 +1,148 @@
+@font-face {
+  font-family: "Roboto";
+  src: url("./../fonts/Roboto-Medium.ttf") format("ttf");
+}
+
+[uk-form-custom]>button {
+	font-size: 75%;
+}
+
+audio,
+audio:focus {
+	height: 2.25em;
+	outline: none;
+}
+
+button[uk-icon].uk-button-small {
+	color: rgb(144, 144, 144);
+	padding-left: 15px;
+}
+
+div#pnlSession {
+	visibility: hidden;
+}
+
+div#pnlSession.connected {
+	visibility: inherit;
+}
+
+div.alert {
+	display: none;
+}
+
+div.connected span.uk-icon[uk-icon="bolt"] {
+	color: blue;
+}
+
+div.connected span.uk-icon[uk-icon="link"],
+span.uk-icon.connected[uk-icon="link"] {
+	color: red;
+}
+
+div.gotFile {
+	visibility: hidden;
+}
+
+div.gotFileActive div.gotFile {
+	visibility: inherit;
+}
+
+div.gotFileActive div.preCover {
+	background-color: inherit;
+	position: absolute;
+	text-align: right;
+	top: 0;
+	width: 100%;
+}
+
+div.gotFileActive span.gotFile {
+	display: none;
+}
+
+div.preCover {
+	background-color: rgba(255, 255, 255, 1.0);
+}
+
+div:not(.connected) span.uk-icon:not(.connected) {
+	opacity: 0.25;
+}
+
+fieldset label {
+	padding-top: 2px;
+}
+
+form#controls div.disabled {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+input#inputPIN {
+	width: 5.5em;
+}
+
+select[disabled],
+select[disabled]+span {
+	color: rgb(144, 144, 144);
+	cursor: default;
+}
+
+span.gotFile {
+	display: inline;
+}
+
+span.uk-icon:not(.connected),
+span:not(.connected) svg.uk-svg {
+	opacity: 0.25;
+}
+
+span.uk-icon[uk-icon=\"bolt\"].connected,
+span.connected svg.uk-svg {
+	color: #39f;
+}
+
+span.uk-icon[uk-icon=\"link\"].connected {
+	color: red;
+}
+
+span.uk-label.click.disabled {
+	background-color: #f8f8f8;
+	border-color: #e5e5e5;
+	color: #999;
+}
+
+span.uk-label.click:not(.disabled) {
+	cursor: pointer;
+}
+
+.sub .uk-logo {
+	color: #e70039 !important;
+}
+
+.uk-navbar-container.Dom {
+	background: linear-gradient(to right, rgb(39, 30, 128), #000);
+}
+
+.uk-navbar-container.sub {
+	background: linear-gradient(to right, #FFF, rgb(39, 30, 128));
+}
+
+.uk-grid>button {
+	border: 1px solid #FFF;
+}
+
+.uk-grid>button:hover {
+	font-weight: bold;
+}
+
+.uk-navbar-container, .uk-navbar-item {
+	color: rgba(255, 255, 255, 0.8)
+}
+
+.uk-overlay span[uk-icon] {
+	opacity: 0.25;
+}
+
+/*	Safari hack for <audio> element volume UI */
+div#dropTarget {
+	overflow: inherit;
+}

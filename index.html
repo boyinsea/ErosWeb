@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<!--
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<html lang="en">
+
+<head>
+	<title>ErosWeb</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script>
+		// Redirect to HTTPS if HTTP is requested.
+		if (window.location.protocol === 'http:') {
+			window.location.href = 'https:' + window.location.href.substring(5);
+		}
+	</script>
+	<link rel="stylesheet" href="css/theme.css" />
+	<script src="js/uikit.js" defer></script>
+	<script src="js/uikit-icons.min.js" defer></script>
+	<script type="module" src="script.js" defer></script>
+	<script type="module" src="ET312.js" defer></script>
+	<script type="module" src="ET312Controller.js" defer></script>
+	<script type="module" src="js/audio2.js" defer></script>
+	<style type="text/css">
+		.uk-grid>button {
+			border: 1px solid #FFF;
+		}
+
+		.uk-grid>button:hover {
+			font-weight: bold;
+		}
+
+		[uk-form-custom]>button {
+			font-size: 75%;
+		}
+
+		button[uk-icon].uk-button-small {
+			color: rgb(144, 144, 144);
+			padding-left: 15px;
+		}
+
+		form#controls div.disabled {
+			opacity: 0.5;
+			pointer-events: none;
+		}
+
+		span.gotFile {
+			display: inline;
+		}
+
+		span.gotFile.gotFileActive {
+			display: none;
+		}
+
+		div.gotFile {
+			display: none;
+		}
+
+		div.gotFile.gotFileActive {
+			display: block;
+		}
+
+		fieldset label {
+			padding-top: 2px;
+		}
+	</style>
+
+</head>
+
+<body>
+	<div uk-height-viewport="expand: true">
+		<div class="uk-navbar-container tm-navbar-container">
+			<div id="heading" class="uk-navbar">
+				<div class="uk-navbar-left">
+					<span class="uk-navbar-item uk-logo">ErosWeb – ET-312 Remote Control</span>
+				</div>
+				<div class="uk-navbar-right">
+					<span class="uk-navbar-item"><b>Solo</b>&nbsp;Mode</span>
+				</div>
+			</div>
+		</div>
+
+		<div id="notSupported" hidden class="uk-container uk-padding-small">
+			<div uk-alert class="uk-card uk-card-default uk-card-body uk-alert-danger">
+				<p>
+					Sorry, <b>Web Serial</b> is not supported on this device or browser.
+				</p>
+				<p>
+					Make sure you're running Chrome 78 or later. Then, go to
+					<code>chrome://flags</code>, search for "Experimental Web
+					Platform features" and make sure that feature is enabled.
+				</p>
+			</div>
+		</div>
+
+		<div id="appUi" uk-grid class="uk-grid-small uk-child-width-1-2@m" uk-height-viewport="offset-top: true" style="visibility: hidden">
+			<form id="controls" class="uk-card uk-card-body">
+				<button id="butConnect" type="button" class="uk-button uk-button-default">Connect to ET-312</button>
+				<button id="butStatus" type="button" class="uk-button">Status</button>
+				<div id="controlsOnline" class="disabled">
+					<div id="modeArray" uk-grid class="uk-grid-collapse uk-child-width-1-3 uk-margin-top uk-grid">
+						<button class="uk-button uk-padding-remove uk-button-danger" value="0">Stop!</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="118">Waves</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="119">Stroke</button>
+
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="120">Climb</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="121">Combo</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="122">Intense</button>
+
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="123">Rhythm</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="128">Random1</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="129">Random2</button>
+
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="130">Toggle</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="131">Orgasm</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="132">Torment</button>
+
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="133">Phase 1</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="134">Phase 2</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="135">Phase 3</button>
+						<!--
+					<button class="uk-button uk-padding-remove uk-button-secondary" value="136">User1</button>
+					<button class="uk-button uk-padding-remove uk-button-secondary" value="137">User2</button>
+					<button class="uk-button uk-padding-remove uk-button-secondary" value="138">User3</button>
+
+					<button class="uk-button uk-padding-remove uk-button-secondary" value="139">User4</button>
+					<button class="uk-button uk-padding-remove uk-button-secondary" value="140">User5</button>
+-->
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="124">Audio 1</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="125">Audio 2</button>
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="126">Audio 3</button>
+
+						<button class="uk-button uk-padding-remove uk-button-secondary" value="127">Split</button>
+
+						<div uk-form-custom="target: > * > span:first-child">
+							<select id="selSplitA">
+								<option value="" disabled></option>
+							</select>
+							<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
+								<span></span>
+								<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
+							</button>
+						</div>
+						<div uk-form-custom="target: > * > span:first-child">
+							<select id="selSplitB">
+								<option value="" disabled></option>
+							</select>
+							<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
+								<span></span>
+								<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
+							</button>
+						</div>
+						<button id="butControl" type="button" class="uk-button uk-padding-remove uk-button-default uk-button-small uk-margin-top">Take Control</button>
+					</div>
+					<!-- Label/badge on separate line...
+				<div class="uk-margin-top">
+					<label class="uk-form-label">Multi-Adjust</label>
+					<span class="uk-badge">100</span>
+					<div class="uk-form-controls uk-grid-collapse uk-grid" uk-grid>
+						<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
+						<input id="potMultiAdjust" class="uk-range uk-width-expand" type="range" />
+						<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
+					</div>
+				</div>
+				-->
+
+					<!-- Analog-to-digital controls on the box; must set CONTROLFLAG to override -->
+					<div id="controlsADC" class="disabled">
+						<div id="levelMultiAdjust" class="uk-margin-top uk-grid-collapse uk-grid">
+							<label class="uk-form-label uk-width-1-5">Multi-Adjust</label>
+							<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
+							<input class="uk-range uk-width-expand" type="range" />
+							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
+						</div>
+						<div id="levelA" class="uk-margin-small-top uk-grid-collapse uk-grid" uk-grid>
+							<div class="uk-width-1-5">
+								<label class="uk-form-label" for="levelA">Level A</label>
+								<span class="uk-badge"></span>
+							</div>
+							<button onclick="" class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
+							<input class="uk-range uk-width-expand" type="range" min="0" max="99" />
+							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
+						</div>
+						<div id="levelB" class="uk-margin-small-top uk-grid-collapse uk-grid" uk-grid>
+							<div class="uk-width-1-5">
+								<label class="uk-form-label" for="levelB">Level B</label>
+								<span class="uk-badge"></span>
+							</div>
+							<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
+							<input class="uk-range uk-width-expand" type="range" min="0" max="99" />
+							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
+						</div>
+					</div>
+				</div>
+
+			</form>
+			<!--
+			<div id="statusArea" class="uk-overflow-auto uk-card uk-card-body">
+				<pre id="log" uk-height-viewport="offset-top: true; offset-bottom: #heading"></pre>
+			</div>
+-->
+			<div id="statusArea" class="uk-card uk-card-body">
+
+				<div id="dropTarget" class="uk-placeholder uk-text-center uk-text-top uk-padding-remove">
+
+					<div id="fileName" class="uk-float-left uk-text-meta gotFile">abc.mp3</div>
+
+					<span uk-icon="icon: pull"></span>
+					<span class="uk-text-middle">Drop <span class="gotFile">an audiostim file here</span> or </span>
+					<div uk-form-custom>
+						<input type="file">
+						<span class="uk-link uk-margin-small-right">select<span class="gotFile"> one</span></span>
+					</div>
+
+					<div class="uk-padding-small">
+						<audio id="localAudio" title="local audio file" controls controlsList="nodownload" class="uk-width-1-1">
+							This browser does not support the audio element.
+						</audio>
+
+						<form>
+							<fieldset class="uk-fieldset uk-margin-left">
+								<div class="uk-grid-small uk-child-width-auto uk-grid">
+									<label><input class="uk-checkbox loop" type="checkbox"> Loop</label>
+									<label><input class="uk-checkbox autoplay" type="checkbox"> Autoplay</label>
+									<div id="localAudioDest">
+										<div uk-form-custom="target: > * > span:last-child">
+											<select uk-tooltip="Select output device">
+											</select>
+											<span class="uk-link">
+												<span uk-icon="icon: sign-out"></span>
+												<span></span>
+											</span>
+										</div>
+										<label style="display: none"><input class="uk-checkbox monitor" type="checkbox" disabled="true"> Monitor</label>
+									</div>
+								</div>
+							</fieldset>
+						</form>
+					</div>
+				</div>
+
+				<pre id="log" class="uk-margin-remove uk-overflow-auto"></pre>
+
+			</div>
+
+		</div>
+
+	</div>
+</body>
+
+</html>
