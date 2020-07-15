@@ -150,26 +150,30 @@ class audioUI {
 		}
 	}
 
-	// "Monitor" player output by routing it to a local audio channel
-	// as well as to the selected output.  Or, turn off monitoring so the
+	// "Monitor" player output by routing it to a local audio channel.
+	// Or, turn off monitoring so the
 	// audio only plays to the streams configured elsewhere.
-	//
-	//	A new property will be added to the player when monitoring is first enabled:
-	//	.monitor = an Audio() object that renders the player's output to the
-	//			destination selected by the outputSelector configured with
-	//			addMonitor
 	//
 	//	This function should only be called as an event handler configured by
 	//	the addMonitor function.
 	async monitor(player, enable) {
 
+		console.log(`Monitor: enable = ${enable}.  player.monitorOutput = ${player.monitorOutput}`);
+
 		if (enable) {
 
-			// Shortcut if output destination is not selectable
+			// Special case if output destination is not selectable, e.g. Safari
 			if (!player.monitorOutput) {
-				player.pause();
-				player.source.connect(this.getAudioCtx().destination);
-				player.play();
+
+				const ctx = this.getAudioCtx();
+				if (!player.monitor) {
+					// await player.pause();
+					player.monitor = ctx.createGain();
+					player.source.connect(player.monitor);
+					player.monitor.connect(ctx.destination);
+					// player.play();
+				}
+				player.monitor.gain.setValueAtTime(1.0, ctx.currentTime + 0.25);
 				return;
 			}
 
@@ -179,7 +183,6 @@ class audioUI {
 
 				// Create a Audio() object to route output
 				// to the player's original sinkId
-				//console.log(`Original sinkId: ${player.sinkId}`);
 				player.output = new Audio();
 				player.output.srcObject = player.stream;
 				await player.output.setSinkId(player.sinkId);
@@ -188,25 +191,31 @@ class audioUI {
 
 			if (!player.monitor) {
 				// Create a Audio() object to route output
-				// to the selected monitor output.
+				// to the selected monitor output, if possible.
+				// Use default destination if output selection
+				// isn't possible.
 				player.monitor = new Audio();
 				player.monitor.srcObject = player.stream;
 				const destId = player.monitorOutput.getValue();
 				await player.monitor.setSinkId(destId);
 			}
+
 			player.monitor.play();
 
 		} else {
 
+window.xPlayer = player;
+
 			// Shortcut if output destination is not selectable
 			if (!player.monitorOutput) {
-				player.source.disconnect(this.getAudioCtx().destination);
+				if (player.monitor instanceof GainNode)
+					player.monitor.gain.exponentialRampToValueAtTime(0.01, player.monitor.context.currentTime + 0.25)
 				return;
 			}
 
 			// Turn off monitoring if enabled.  Once player output has been re-routed to
 			// a MediaElementSource, it can't be un-routed.  So, we simply stop (pause)
-			// and destroy the monitor object.
+			// and destroy the monitor player object.
 			if (player.monitor) {
 				player.monitor.pause();
 				player.monitor = null;

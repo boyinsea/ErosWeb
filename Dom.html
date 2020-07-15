@@ -5,6 +5,7 @@
 	<title>ErosWeb – Dom</title>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<script>
 		// Redirect to HTTPS if HTTP is requested.
@@ -19,7 +20,6 @@
 	<script type="module" src="js/script-Dom.js" defer></script>
 	<script type="module" src="js/ET312.js" defer></script>
 	<script type="module" src="js/ET312Remote.js" defer></script>
-	<!-- <script type="module" src="js/audio2.js" defer></script> -->
 	<script src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js" defer></script>
 
 </head>
@@ -27,12 +27,12 @@
 <body>
 	<div uk-height-viewport="expand: true">
 		<div class="uk-navbar-container Dom">
-			<div id="heading" class="uk-navbar">
+			<div class="uk-navbar">
 				<div class="uk-navbar-left">
-					<span class="uk-navbar-item uk-text-lead">ErosWeb – ET-312 Remote Control</span>
+					<span id="heading" class="uk-navbar-item uk-text-lead">ErosWeb – ET-312 Remote Control</span>
 				</div>
 				<div class="uk-navbar-right">
-					<a href="#pnlConfigAV" class="uk-icon" uk-icon="cog" uk-toggle uk-tooltip="Configure audio output, camera, and microphone."></a>
+					<a href="#pnlConfigAV" class="uk-navbar-item uk-icon" uk-icon="cog" uk-toggle uk-tooltip="Configure audio output, camera, and microphone."></a>
 					<span class="uk-navbar-item"><b>Dom</b>&nbsp;Mode</span>
 				</div>
 			</div>
@@ -154,7 +154,7 @@
 							<span uk-icon="icon: pull"></span>
 							<span class="uk-text-middle">Drop <span class="gotFile">an audiostim file here</span> or </span>
 							<div uk-form-custom>
-								<input type="file">
+								<input type="file" accept="audio/*">
 								<span class="uk-link uk-margin-small-right uk-text-middle">select<span class="gotFile"> one</span></span>
 							</div>
 						</div>
@@ -165,7 +165,7 @@
 				<div id="statusArea" class="uk-width-3-5 uk-card uk-card-small uk-card-body uk-padding-remove-top">
 
 					<div id="pnlSession" class="uk-margin-small">
-						<!-- <span class="uk-icon connected" uk-icon="link"></span> -->
+						<span id="iconLink" class="uk-icon" uk-icon="bolt" uk-tooltip="Indicates that You have control of the remote sub's ET-312."></span>
 						<span id="verb" class="uk-text-middle">Connected to</span>
 						<span id="subName" class="uk-text-middle uk-text-bold uk-text-secondary"></span>
 					</div>
@@ -284,8 +284,7 @@
 						<li>Navigate to <code>chrome://settings/content</code></li>
 						<li>Check both the "microphone" and "camera" sections</li>
 						<li>Reset permissions for the site
-							<code textContent="document.location.origin">
-							</code>
+							<code textContent="document.location.origin"></code>
 						</li>
 					</ol>
 				</li>

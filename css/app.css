@@ -30,13 +30,22 @@ div.alert {
 	display: none;
 }
 
-div.connected span.uk-icon[uk-icon="bolt"] {
-	color: blue;
+span.uk-icon:not(.connected),
+span:not(.connected) svg.uk-svg {
+	opacity: 0.25;
 }
 
-div.connected span.uk-icon[uk-icon="link"],
+span.uk-icon.connected[uk-icon="bolt"] {
+	color: /*blue;*/ #39f;
+}
+
 span.uk-icon.connected[uk-icon="link"] {
 	color: red;
+}
+
+/* Speaker icon in Sub mode */
+span.connected svg.uk-svg {
+	color: /*#39f;*/ purple;
 }
 
 div.gotFile {
@@ -63,10 +72,6 @@ div.preCover {
 	background-color: rgba(255, 255, 255, 1.0);
 }
 
-div:not(.connected) span.uk-icon:not(.connected) {
-	opacity: 0.25;
-}
-
 fieldset label {
 	padding-top: 2px;
 }
@@ -88,20 +93,6 @@ select[disabled]+span {
 
 span.gotFile {
 	display: inline;
-}
-
-span.uk-icon:not(.connected),
-span:not(.connected) svg.uk-svg {
-	opacity: 0.25;
-}
-
-span.uk-icon[uk-icon=\"bolt\"].connected,
-span.connected svg.uk-svg {
-	color: #39f;
-}
-
-span.uk-icon[uk-icon=\"link\"].connected {
-	color: red;
 }
 
 span.uk-label.click.disabled {

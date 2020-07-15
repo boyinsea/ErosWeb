@@ -5,7 +5,7 @@
 
 import { ET312Serial } from './ET312.js';
 import { ET312Controller } from './ET312Controller.js';
-import { audioUI } from './js/audio2.js';
+import { audioUI } from './audio2.js';
 
 const STATE = {
 	et312: null,
@@ -25,6 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Identify UI components.
 	document.querySelectorAll('*[id]').forEach(el => { UI[el.id] = el; });
+
+	// UI text substitutions, for dialogs
+	document.querySelectorAll('*[textContent]').forEach(el => el.textContent = eval(el.getAttribute('textContent')));
 
 	// Simply display an error message if we can't run.
 	if (!("serial" in navigator)) {
@@ -55,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	};
 
-	window.addEventListener("resize", () => {resize(UI.log);});
+	window.addEventListener("resize", () => { resize(UI.log); });
 
 	// Capture "timeout" and similar errors when talking to ET-312
 	window.addEventListener("unhandledrejection", async function (e) {
@@ -166,10 +169,10 @@ async function toggleState(conn, box) {
 		if (STATE.et312) {
 			await STATE.et312.close(); // Reset key & close serial connection
 			STATE.et312 = null;
-			UI.log.textContent += 'ET-312 disconnected.\n';
+			UI.log.textContent += 'ET-312 unlinked.\n';
 		}
 
-		UI.butConnect.textContent = "Connect to ET-312";
+		UI.butConnect.textContent = "Link ET-312";
 
 	} else {
 		// Box true => Set up connection if needed
@@ -178,13 +181,13 @@ async function toggleState(conn, box) {
 				let port = await navigator.serial.requestPort();
 				STATE.et312 = new ET312Serial(port);
 				await STATE.et312.connect();
-				UI.butConnect.textContent = "Disconnect";
-				log.textContent += 'ET-312 connected and ready.\n';
+				UI.butConnect.textContent = "Unlink ET-312";
+				log.textContent += 'ET-312 linked and ready.\n';
 			} catch (err) {
 				if ('NotFoundError' == err.name) {
 					log.textContent += 'No port was selected.\n';
 				} else {
-					log.textContent += `Error connecting to ET-312: ${err.message}\n`;
+					log.textContent += `Error linking ET-312: ${err.message}\n`;
 					await showAlert('noConnect', err);
 					STATE.et312 = null;
 				}
@@ -219,8 +222,8 @@ async function toggleState(conn, box) {
 
 	} else {
 
-		if (box) {
-			// Relinquish control of box if we have it (ramp down first)
+		// Relinquish control of box if we have it (ramp down first)
+		if (box && STATE.ctl) {
 			const control = await STATE.ctl.hasControl();
 			if (control) {
 				UI.log.textContent += `${UI.domName.textContent} has relinquished control of the ET-312.\n`;
@@ -239,6 +242,10 @@ async function toggleState(conn, box) {
 
 		// Tear down any existing connections
 		if (STATE.dataConn) {
+
+			// Notify remote peer that connection is ending.
+
+
 			STATE.dataConn.close();
 			STATE.dataConn = null;
 		}
@@ -250,6 +257,7 @@ async function toggleState(conn, box) {
 
 	// UI
 	UI.pnlSession.classList.toggle("connected", Boolean(conn));
+	UI.iconBoxLink.classList.toggle("connected", Boolean(box));
 	UI.iconLink.classList.toggle("connected", Boolean(box) & Boolean(conn));
 }
 
@@ -321,6 +329,8 @@ function toggleUIPresent(present) {
 	} else {
 		UI.sessionId.textContent = '';
 		UI.pnlSessionId.classList.replace('uk-animation-scale-up', 'uk-invisible');
+		UI.log.textContent += `Remote connection disabled.\n`;
+
 	}
 	resize(UI.log);
 }
@@ -330,21 +340,29 @@ function createPeerConnection(name) {
 	// https://elements.heroku.com/buttons/peers/peerjs-server
 
 	// Generate a Session ID based on a hash of the scene name & current time.
-	let hash = 0;
-	for (const char of name) {
-		hash = ((hash << 5) - hash) + char.charCodeAt(0);
+	let hash = Date.now(), //0,
+		i = 0;
+	while (i < name.length) {
+		hash = ((hash << 5) - hash) + name.charCodeAt(i++);
 		hash |= 0;
 	}
-	const sessionId = idFormat(Date.now().toString(36) + hash.toString(36));
+	const sessionId = idFormat(/*Date.now().toString(36) +*/ Math.abs(hash).toString(36));
 
+	UI.log.textContent += `Preparing to go online...\n`;
 	const P = new Peer(sessionId, {
+		/*
 		host: document.location.host,
 		port: 9000,
 		path: '/peerjs',
 		secure: true
+		*/
+		host: 'erosweb-peerjs-server.herokuapp.com',
+		port: 443,
+		secure: true
 	});
 
 	P.on('open', () => {
+		UI.log.textContent += `Ready to accept a remote connection.\n`;
 		toggleUIPresent(true);
 	});
 
@@ -360,7 +378,7 @@ function createPeerConnection(name) {
 	P.on('connection', (dataConnection) => {
 
 		// This event occurs once, the very first time the connection is ready to use.
-		dataConnection.on('open', () => {
+		dataConnection.on('open', async function() {
 
 			// Validate PIN, if any
 			const PIN = UI.inputPIN.value;
@@ -376,11 +394,20 @@ function createPeerConnection(name) {
 			toggleState(true, STATE.ctl); // Toggle app into "connected" mode
 			STATE.dataConn = dataConnection;
 
+			// If ET-312 box is connected, get current status information
+			let info;
+			if (STATE.ctl) {
+				info = await STATE.ctl.getInfo(true);
+			} else {
+				info = false;
+			}
+
 			// Send welcome message
 			dataConnection.send({
 				welcome: true,
 				sceneName: UI.inputName.value,
-				videoShare: Boolean(STATE.videoShare)
+				videoShare: Boolean(STATE.videoShare),
+				info: info
 			});
 		});
 
@@ -414,8 +441,8 @@ function createPeerConnection(name) {
 
 		dataConnection.on('close', () => {
 			if (STATE.dataConn) {
-				UI.log.textContent += `${UI.domName.textContent} has disconnected.\n`;
-				UIkit.notification(`<b>${UI.domName.textContent}</b> has disconnected.`, { pos: 'top-left', status: 'primary' });
+				UI.log.textContent += `${UI.domName.textContent} disconnected.\n`;
+				UIkit.notification(`<b>${UI.domName.textContent}</b> disconnected.`, { pos: 'top-left', status: 'primary' });
 				STATE.dataConn = null;
 			}
 			toggleState(false, STATE.ctl);
@@ -480,19 +507,19 @@ function createPeerConnection(name) {
 // a small heartbeat snapshot instead.
 async function doCommand(f, ...params) {
 	let info = await f(...params);
-	if (!info || ('object' != typeof (info))) info = STATE.ctl.getInfo(true);
+	if (!info || ('object' != typeof (info))) info = await STATE.ctl.getInfo(true);
 	STATE.dataConn.send({ info: info });
 }
 
 
-// Format an ID string into chunks of 4 characters
+// Format an ID string into chunks
 function idFormat(idText) {
 	const s = idText.replace('-', '');
 	let buffer = [];
 	let i = 0;
 	for (const char of s) {
 		buffer.push(char);
-		if (0 == (++i % 4)) buffer.push('-');
+		if (0 == (++i % 3)) buffer.push('-');
 	}
 	return buffer.join('').replace(/\-$/, '');
 }

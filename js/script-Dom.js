@@ -21,7 +21,7 @@ const UI = {
 document.addEventListener("DOMContentLoaded", () => {
 
 	// First step: identify UI components.
-	document.querySelectorAll('*[id]').forEach(el => { UI[el.id] = el; });
+	document.querySelectorAll('*[id]').forEach(el => UI[el.id] = el);
 
 	// UI text substitutions, for dialogs
 	document.querySelectorAll('*[textContent]').forEach(el => el.textContent = eval(el.getAttribute('textContent')));
@@ -142,13 +142,13 @@ document.addEventListener("DOMContentLoaded", () => {
 			if (m && m.startsWith("Audio")) OK = true;
 		}
 		if (!OK && !UI.ckMonitor.checked) {
+			console.dir(STATE.ctl);
 			UIkit.notification(
 				(STATE.ctl) ?
 				'Remember to select an Audio mode!' :
-				"<span class='uk-text-small'>Use the \"Monitor\" checkbox to preview audio locally.  Audio will be sent to remote sub's ET-312 box once connected.</span>",
-				{ pos: 'bottom-center', status: 'primary' });
-				UI.localAudioPlayWarning = true;
-			}
+				"<span class='uk-text-small'>Use the \"Monitor\" checkbox to preview audio locally.  Audio will be sent to remote sub's ET-312 box once connected.</span>", { pos: 'bottom-center', status: 'primary' });
+			UI.localAudioPlayWarning = true;
+		}
 	});
 
 	UI.audioUI.init().then(() => {
@@ -259,6 +259,8 @@ const UI_UPDATE = {
 // Refresh UI based on information from a remote ET-312 box
 function refreshUI(info) {
 
+	UI.iconLink.classList.toggle("connected", Boolean(info));
+
 	if (info) {
 		UI.verb.textContent = "Controlling";
 
@@ -295,67 +297,50 @@ function refreshUI(info) {
 
 function createPeerConnection(destId) {
 
-	// UI.log.textContent += "Preparing to connect...\n";
-
 	// https://elements.heroku.com/buttons/peers/peerjs-server
 
 	const P = new Peer('', {
-		host: 'webstim.herokuapp.com', //document.location.host,
+		host: 'erosweb-peerjs-server.herokuapp.com', //document.location.host,
 		port: 443, // 9000,
 		//path: '/peerjs',
 		secure: true
 	});
 
 	P.on('open', () => {
-		// UI.log.textContent += `Local ID is ${P.id}; initiating connection\n`;
 		const dataConn = P.connect(destId, { metadata: { PIN: UI.inputPIN.value }, serialization: 'json' });
-
-		// Connection established to remote sub.  This is the low-level connection only;
-		// it is not yet established whether the sub will accept our connection.
-		// dataConn.on('open', () => {
-		// 	UI.log.textContent += "Reached remote sub...\n";
-		// });
 
 		// Data received from remote sub
 		dataConn.on('data', (data) => {
-			// console.dir(data);
+			console.dir(data);
 			for (const prop in data) {
 				let obj = data[prop];
 				console.log(`${prop} = ${JSON.stringify(obj)}`);
 				if ('welcome' == prop) {
-					if (true == obj) {
+					if (true === obj) {
 						UIkit.notification('Connected!', { pos: 'top-left', status: 'success' });
 						STATE.dataConn = dataConn;
-						STATE.ctl = new ET312Remote(dataConn);
+						// STATE.ctl = new ET312Remote(dataConn);
 						toggleUIConnected(true);
-						dataConn.send({
+						STATE.dataConn.send({
 							sceneName: UI.inputName.value,
 							videoShare: Boolean(STATE.videoShare)
 						});
 
-						// console.log(`${Date.now()} Connection open & communication underway.`);
-
 						// Create MediaConnection for estim audio
 						const estimAudioConnection = P.call(
 							destId,
-							UI.localAudio.stream,
-							{ metadata: { estimAudio: true } }
+							UI.localAudio.stream, { metadata: { estimAudio: true } }
 						);
 
 						// if we are currently sharing audio/video, call the sub
-						if (STATE.videoShare) {
-							// console.log(`${Date.now()} Sending video/audio.`);
-							gotConnection(P.call(destId, STATE.videoShare));
+						if (STATE.videoShare) gotConnection(P.call(destId, STATE.videoShare));
 
-							// STATE.mediaConnection.on('stream', (stream) => {
-							// 	UI.remoteVideo.nextElementSibling.hidden = true; // Hide overlay
-							// 	UI.remoteVideo.srcObject = stream;
-							// 	UI.remoteVideo.autoplay = true;
-							// });
-						}
-
+					} else if (false === obj) {
+						// welcome: false means the remote sub wants to close the connection.
+						if (state.dataConn) state.dataConn.close();
 					} else {
-						// welcome:false means Connection refused (this will be followed by a "close" event)
+						// welcome: [object] means Connection refused; object contains error information.
+						// This will be followed by a "close" event.
 						if ('PIN Mismatch' == obj.error) UI.inputPIN.classList.toggle('uk-form-danger', true);
 						showAlert('connectionRefused', obj.error).then(() => { UI.butConnect.disabled = false; });
 					}
@@ -363,25 +348,30 @@ function createPeerConnection(destId) {
 
 				if ('sceneName' == prop) UI.subName.textContent = obj;
 
+				// Information about the sub's ET-312 box.  false == no box connected
 				if ('info' == prop) {
-					STATE.ctl.info(obj);
-					refreshUI(obj);
-					if (!obj) UIkit.notification(
-						"Remote control of the sub's ET-312 box is disabled.", { pos: 'top-left', status: 'warning' }
-					);
+					if (obj) {
+						if (!STATE.ctl) STATE.ctl = new ET312Remote(dataConn);
+						STATE.ctl.info(obj);
+						refreshUI(obj);
+					} else {
+						STATE.ctl = null;
+						UIkit.notification(
+							"Remote control of the sub's ET-312 box is disabled.", { pos: 'top-left', status: 'warning' }
+						);
+					}
 				}
 
 				// Sub has changed video sharing state
 				if ('videoShare' == prop) {
 
 					// Sub is now sharing too.
-					// Call back so sub can reply with their video stream.
 					if (obj && STATE.videoShare) {
 
-						// Firse close any existing connection
+						// First close any existing connection
 						if (STATE.mediaConnection) STATE.mediaConnection.close();
 
-						// console.log(`${Date.now()} Sending video/audio.`);
+						// Call back so sub can reply with their video stream.
 						gotConnection(P.call(dataConn.peer, STATE.videoShare));
 					}
 
@@ -395,15 +385,11 @@ function createPeerConnection(destId) {
 			}
 		});
 
-		// Remote sub has closed data connection.
-		// Get rid of our local remote control.
 		dataConn.on('close', () => {
-			// console.log(`${Date.now()} Remote connection closed.`);
 			// If we are still holding a data connection object,
 			// this means that the sub has ended the scene.
 			if (STATE.dataConn) {
 				STATE.dataConn = null;
-				// UI.log.textContent += "Remote sub has disconnected.\n";
 				UIkit.modal.alert(`Remote sub has ended the scene.`);
 			}
 			STATE.ctl = null;
@@ -416,9 +402,9 @@ function createPeerConnection(destId) {
 			UIkit.notification("Lost connection to the remote sub.", { pos: 'top-center', status: 'danger' });
 		});
 	});
+
 	P.on('error', (err) => {
 		STATE.peer = null; // Drop reference to the peer object so we can try again.
-		// UI.log.textContent += `${err}\n`;
 		if (err.message.startsWith('Could not connect to peer '))
 			UI.inputSId.classList.toggle('uk-form-danger', true);
 		showAlert('connectionFailed', err).then(() => { UI.butConnect.disabled = false; })
@@ -470,7 +456,6 @@ function parseDeviceSelector(deviceId) {
 		return { deviceId: { exact: deviceId } };
 }
 
-
 async function clickShare() {
 
 	const constraints = {
@@ -481,8 +466,6 @@ async function clickShare() {
 	if (!STATE.videoShare) {
 		try {
 			STATE.videoShare = await navigator.mediaDevices.getUserMedia(constraints);
-
-			// handle case when user doesn't share media.
 
 			UI.localVideo.nextElementSibling.hidden = true;
 			UI.localVideo.srcObject = STATE.videoShare;
@@ -501,10 +484,9 @@ async function clickShare() {
 			}
 		} catch (e) {
 			if (
-				((e instanceof DOMException) && (DOMException.NOT_FOUND_ERR == e.code))
-				||
+				((e instanceof DOMException) && (DOMException.NOT_FOUND_ERR == e.code)) ||
 				((e instanceof OverconstrainedError) && ("OverconstrainedError" == e.name))
-			){
+			) {
 				showAlert('mediaMissing', e);
 			} else if ((e instanceof DOMException) && ('NotAllowedError' == e.name)) {
 				showAlert('GUMCoach', e);
@@ -585,30 +567,6 @@ function showAlert(name, err) {
 }
 
 /*
-function logResize() {
-	const myStyles = window.getComputedStyle(UI.log);
-	const parentStyles = window.getComputedStyle(UI.log.parentElement);
-
-	const topOffset = UI.log.getBoundingClientRect().top + parseInt(myStyles.paddingTop.replace("px", ""));
-	const bottomPadding = parseInt(myStyles.paddingBottom.replace("px", "")) +
-		parseInt(parentStyles.paddingBottom.replace("px", ""));
-
-	let height = window.innerHeight - topOffset - bottomPadding;
-
-// nextElementSibling
-	if (UI.chatUI) {
-		const nextStyles = window.getComputedStyle(UI.chatUI);
-		const nextHeight = parseInt(nextStyles.height.replace("px", "")) +
-			parseInt(nextStyles.marginBottom.replace("px", "")) +
-			parseInt(nextStyles.marginTop.replace("px", ""));
-		height -= nextHeight;
-	}
-
-	UI.log.style.height = `${height}px`;
-}
-*/
-
-/*
 Configure a <select> element for each channel of the "split"
 mode, based on the current box configuration.
 */
@@ -631,7 +589,7 @@ function configureSplitSelect(selControl, currentMode, info) {
 // a DIV to create an interactive slider control.
 function configureSlider(sliderDiv, inverse) {
 
-	let range = sliderDiv.querySelector('input[type="range"]');
+	const range = sliderDiv.querySelector('input[type="range"]');
 	sliderDiv.setRange = (low, high) => {
 		range.min = low;
 		range.max = high;
@@ -645,14 +603,14 @@ function configureSlider(sliderDiv, inverse) {
 		return (inverse) ? parseInt(range.max) - curValue + parseInt(range.min) : curValue;
 	};
 
-	let badge = sliderDiv.getElementsByClassName("uk-badge")[0];
+	const badge = sliderDiv.getElementsByClassName("uk-badge")[0];
 	if (badge) {
 		range.addEventListener("input", (e) => {
 			badge.innerText = range.value;
 		});
 	}
 
-	let upDown = sliderDiv.getElementsByTagName('button');
+	const upDown = sliderDiv.getElementsByTagName('button');
 	upDown[0].addEventListener("click", (e) => {
 		range.stepDown();
 		range.dispatchEvent(new Event('input', { bubbles: true }));

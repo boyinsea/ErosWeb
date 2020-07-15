@@ -148,14 +148,11 @@ class ET312Controller {
 	// Writes the given command(s) to address 0x4070, waiting
 	// at least 20ms for each command to execute.
 	async executeCommands(commands) {
-		// console.log(`Execute Commands: ${commands}`);
 		const values = await Promise.all([
 			this._et312.writeAddress(0x4070, commands),
 			new Promise((resolve, _) => { setTimeout(resolve, 20 * commands.length); })
 		]);
-		// console.log(`Returned values: ${values[0]}`);
 		return values[0];
-
 	}
 
 	async getValue(property) {
@@ -163,12 +160,17 @@ class ET312Controller {
 		return await this._et312.readAddress(property.address);
 	}
 
+	// Write a value (passed as an array) to the indicated address, which
+	// can either be a DEVICE.property "enumeration" value or a numeric
+	// address.
+	// Returns true if the value was written successfully
 	async setValue(property, value) {
 		let address;
 		if ('object' == typeof (property)) address = property.address;
 		else if ('number' == typeof (property)) address = property;
 		else address = this.DEVICE[property].address;
-		return await this._et312.writeAddress(address, value);
+		const retVal = await this._et312.writeAddress(address, value);
+		return ((retVal instanceof Uint8Array) && (6 == retVal[0]));
 	}
 	setValue = this.setValue.bind(this);
 

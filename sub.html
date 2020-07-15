@@ -27,12 +27,12 @@
 	</script>
 	<link rel="stylesheet" href="css/theme.css" />
 	<link rel="stylesheet" href="css/app.css" />
-	<script src="js/uikit.js" defer></script>
-	<script src="js/uikit-icons.min.js" defer></script>
-	<script type="module" src="script-sub.js" defer></script>
-	<script type="module" src="ET312.js" defer></script>
-	<script type="module" src="ET312Controller.js" defer></script>
-	<script type="module" src="js/audio2.js" defer></script>
+	<script src="js/lib/uikit.min.js" defer></script>
+	<script src="js/lib/uikit-icons.min.js" defer></script>
+	<script type="module" src="js/script-sub.js" defer></script>
+	<script type="module" src="js/ET312.js" defer></script>
+	<script type="module" src="js/ET312Controller.js" defer></script>
+	<!-- <script type="module" src="js/audio2.js" defer></script> -->
 	<script src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js"></script>
 </head>
 
@@ -70,13 +70,10 @@
 				<input id="inputPIN" class="uk-input" type="number" min="0" max="9999" maxlength="4" placeholder="PIN">
 				<button id="butPresent" type="button" class="uk-button uk-button-default">Present</button>
 				<button id="butShare" type="button" class="uk-button uk-button-default">Share Audio/Video</button>
-				<!-- <button id="butStatus" type="button" class="uk-button" disabled>Status</button> -->
 			</div>
 
 			<div class="uk-width-1-6 uk-box-shadow-medium uk-margin-small uk-position-small uk-position-top-right uk-position-z-index">
-				<video id="localVideo" autoplay muted="true">
-					Sorry, your browser doesn't support embedded videos.
-				</video>
+				<video id="localVideo" autoplay muted="true"></video>
 				<div class="uk-overlay uk-overlay-default uk-position-center uk-padding-remove">
 					<span class="uk-icon-link" uk-icon="icon: video-camera; ratio: 2"></span>
 				</div>
@@ -90,25 +87,19 @@
 						<span class="uk-text-middle">Your session ID is: </span>
 						<span id="sessionId" class="uk-text-middle uk-text-secondary"></span>
 						<a id="butLinkCopy" href="" class="uk-margin-small-left uk-text-middle uk-text-small uk-text-uppercase">Copy Link</a>
-						<!-- <button id="butLinkCopy" type="button" class="uk-button uk-button-link uk-margin-small-left">Copy Link</button> -->
 					</div>
 
 					<div class="uk-margin-small">
-						<button id="butConnect" type="button" class="uk-button uk-button-default">Connect to ET-312</button>
+						<button id="butConnect" type="button" class="uk-button uk-button-default">Link ET-312</button>
 						<button id="butStatus" type="button" class="uk-button">Status</button>
-						<span id="iconLink" class="uk-icon" uk-icon="link" uk-tooltip="Indicates Dom connected and ErosWeb override of the ET-312 front-panel controls"></span>
+						<span id="iconBoxLink" class="uk-icon" uk-icon="link" uk-tooltip="Indicates that ErosWeb is linked to an ET-312 box."></span>
+						<span id="iconLink" class="uk-icon" uk-icon="bolt" uk-tooltip="Indicates that a Dom has connected and override of the ET-312 front-panel controls."></span>
 						<span id="iconEstimAudio" uk-tooltip="Indicates Dom can provide estim audio content">
-							<img uk-svg width="20" height="20" viewBox="0 0 20 20" src="./speaker.svg" />
+							<img uk-svg width="20" height="20" viewBox="0 0 20 20" src="./assets/speaker.svg" />
 						</span>
-						<!-- <span id="iconPresent" class="uk-icon disconnected" uk-icon="bolt"></span> -->
 					</div>
 
 					<pre id="log" class="uk-margin-remove uk-overflow-auto"></pre>
-
-					<!-- <div id="chatUI" class="uk-margin-small">
-						<input class="uk-input uk-width-4-5" type="text" placeholder="Message">
-						<button id="butSendMessage" type="button" class="uk-button uk-button-small uk-width-1-6">Send</button>
-					</div> -->
 
 				</form>
 
@@ -120,9 +111,7 @@
 					</div>
 
 					<div class="uk-inline uk-width-1-1 uk-box-shadow-medium uk-margin-small uk-align-right">
-						<video id="remoteVideo" uk-height-viewport="offset-top: true; offset-bottom: true">
-							Sorry, your browser doesn't support embedded videos.
-						</video>
+						<video id="remoteVideo" uk-height-viewport="offset-top: true; offset-bottom: true"></video>
 						<div class="uk-overlay uk-overlay-default uk-position-center">
 							<span class="uk-icon-link" uk-icon="icon: user; ratio: 4"></span>
 						</div>
@@ -209,9 +198,10 @@
 			</div>
 
 			<div class="noConnect">
-				<b>Could not connect to ET-312</b>
+				<b>Could not link ET-312</b>
 				<ul>
 					<li>Make sure that you selected the correct serial port.</li>
+					<li>Check the physical connection (wires and adapters) between your computer and the ET-312.</li>
 					<li>Make sure the ET-312 is turned on.</li>
 					<li>Reset the ET-312 by turning it off and on again.</li>
 				</ul>
@@ -239,11 +229,7 @@
 						<li>Navigate to <code>chrome://settings/content</code></li>
 						<li>Check both the "microphone" and "camera" sections</li>
 						<li>Reset permissions for the site
-							<code>
-								<script type="text/javascript">
-									document.write(document.location.origin);
-								</script>
-							</code>
+							<code textContent="document.location.origin"></code>
 						</li>
 					</ol>
 				</li>
