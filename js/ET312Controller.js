@@ -18,6 +18,10 @@ class ET312Controller {
 			throw new Error(`Invalid object: expected ET312Base, got ${typeof(unit)}.`);
 		}
 
+		this.lastHeartbeat = 0;
+
+		/*	CONSTANTS	*/
+
 		this.MODES = {
 			0: "None",
 			0x76: "Waves",
@@ -51,12 +55,14 @@ class ET312Controller {
 		this.POWERLEVEL = { 1: "Low", 2: "Normal", 3: "High" };
 
 		// This structure maps ET-312 memory addresses to friendly names.
+		// Properties tagged with "heartbeat: true" are included when sending a snapshot
+		// update of box status to a remote controller.
 		this.DEVICE = {
 			SYSTEMFLAGS: { address: 0x400f, description: "System Flags", heartbeat: true },
 			//		ADC0: { address: 0x4060, description: "Output Current Sense" },
-			ADC1: { address: 0x4061, description: "Multi-adjust knob position", heartbeat: true },
-			ADC4: { address: 0x4064, description: "Level A Knob Position", heartbeat: true },
-			ADC5: { address: 0x4065, description: "Level B Knob Position", heartbeat: true },
+			ADC1: { address: 0x4061, description: "Multi-adjust knob position" },
+			ADC4: { address: 0x4064, description: "Level A Knob Position" },
+			ADC5: { address: 0x4065, description: "Level B Knob Position" },
 			ADC6: { address: 0x4066, description: "Audio Input Level A", heartbeat: true },
 			ADC7: { address: 0x4067, description: "Audio Input Level B", heartbeat: true },
 			MENUSTATE: { address: 0x406D, description: "Menu State" },
@@ -65,9 +71,9 @@ class ET312Controller {
 			MODENUM: { address: 0x407b, description: "Current mode number", heartbeat: true },
 			CONTROLFLAGS: { address: 0x4083, description: "Control Flags" },
 			//		SCRATCH: { address: 0x4093, description: "Overwritten with 0 when a program starts" },
-			MAVALUE: { address: 0x420d, description: "Current Multi-Adjust value", heartbeat: true },
-			MALOW: { address: 0x4086, description: "Low end of Multi-Adjust range", heartbeat: true },
-			MAHIGH: { address: 0x4087, description: "High end of Multi-Adjust range", heartbeat: true },
+			MAVALUE: { address: 0x420d, description: "Current Multi-Adjust value" },
+			MALOW: { address: 0x4086, description: "Low end of Multi-Adjust range" },
+			MAHIGH: { address: 0x4087, description: "High end of Multi-Adjust range" },
 			POWERLEVEL: { address: 0x41f4, description: "Power Level" }, // 1 Low - 3 High
 			//		POWERA: { address: 0x406B, description: "Channel A Calibration" },
 			//		POWERB: { address: 0x406C, description: "Channel B Calibration" },
@@ -121,8 +127,6 @@ class ET312Controller {
 		0x05 - CONTROLFLAGPHASEMASK
 		0x20 - CONTROLFLAGDISABLESWITCHESMASK
 		*/
-
-		this.lastHeartbeat = 0;
 	}
 
 	// Retrieve current box status.
@@ -160,7 +164,7 @@ class ET312Controller {
 		return await this._et312.readAddress(property.address);
 	}
 
-	// Write a value (passed as an array) to the indicated address, which
+	// Write a value to the indicated address, which
 	// can either be a DEVICE.property "enumeration" value or a numeric
 	// address.
 	// Returns true if the value was written successfully
@@ -169,6 +173,7 @@ class ET312Controller {
 		if ('object' == typeof (property)) address = property.address;
 		else if ('number' == typeof (property)) address = property;
 		else address = this.DEVICE[property].address;
+		if (!(value instanceof Array)) value = [value];
 		const retVal = await this._et312.writeAddress(address, value);
 		return ((retVal instanceof Uint8Array) && (6 == retVal[0]));
 	}
@@ -225,6 +230,17 @@ class ET312Controller {
 	}
 	setMode = this.setMode.bind(this);
 
+	//	Set Power Level 1-3 (0x6b = low, etc.)
+	async setPowerLevel(newLevel) {
+		console.log(`Setting power level ${newLevel}`);
+		let result = await this._et312.writeAddress(0x4078, [0x6a + newLevel]);
+		result = await this.executeCommands([0x06]);
+		result = await this.getValue(this.DEVICE.POWERLEVEL);
+		console.dir(result);
+		return {POWERLEVEL: result};
+	}
+	setPowerLevel = this.setPowerLevel.bind(this);
+
 	// Immediately stop stim output by changing to a non-existent mode
 	async stop() {
 		let result = await this.setMode(0x8d);
@@ -280,7 +296,7 @@ class ET312Controller {
 		return Boolean(flags & 0x01);
 	}
 
-	// Take (status = true) or relenquish (status=false) control of LEVELS and MULTI-ADJUST.
+	// Take (status = true) or relinquish (status=false) control of LEVELS and MULTI-ADJUST.
 	// Returns a box info object with a snapshot of current status, as well as the Promise for
 	// the LCD update operation.  Calling functions can optionally wait for the display update
 	// to complete.

@@ -26,7 +26,6 @@ function generateChecksum(data) {
 function verifyChecksum(data) {
 	if (data.length < 2) throw new Error('Data packet too small for checksum.');
 	const checksum = data[data.length - 1];
-	// console.log('checksum is: ' + checksum);
 	if (checksum !== generateChecksum(data.slice(0, -1))) {
 		throw new Error('Invalid checksum!');
 	}

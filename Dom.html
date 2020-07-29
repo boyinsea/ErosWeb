@@ -17,10 +17,10 @@
 	<link rel="stylesheet" href="css/app.css" />
 	<script src="js/lib/uikit.min.js" defer></script>
 	<script src="js/lib/uikit-icons.min.js" defer></script>
+	<script src="js/lib/peerjs.min.js"></script>
 	<script type="module" src="js/script-Dom.js" defer></script>
 	<script type="module" src="js/ET312.js" defer></script>
 	<script type="module" src="js/ET312Remote.js" defer></script>
-	<script src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js" defer></script>
 
 </head>
 
@@ -63,7 +63,8 @@
 				<form id="controls" class="uk-card uk-card-small uk-card-body uk-form-horizontal uk-width-2-5 uk-padding-remove-right uk-padding-remove-top">
 
 					<div id="controlsOnline">
-						<div id="modeArray" uk-grid class="uk-grid-collapse uk-child-width-1-3 uk-grid">
+
+						<div id="modeArray" uk-grid class="uk-grid-collapse uk-child-width-1-3 uk-grid uk-margin-small-bottom">
 							<button class="uk-button uk-padding-remove uk-button-danger" value="0">Stop!</button>
 							<button class="uk-button uk-padding-remove uk-button-secondary" value="118">Waves</button>
 							<button class="uk-button uk-padding-remove uk-button-secondary" value="119">Stroke</button>
@@ -88,29 +89,31 @@
 							<button class="uk-button uk-padding-remove uk-button-secondary" value="125">Audio 2</button>
 							<button class="uk-button uk-padding-remove uk-button-secondary" value="126">Audio 3</button>
 
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="127">Split</button>
-							<div uk-form-custom="target: > * > span:first-child">
+							<button class="uk-button uk-padding-remove uk-button-secondary" value="127">Split &rarr;</button>
+							<div uk-form-custom="target: > * > span:first-child" uk-tooltip="Program for Channel A in Split mode">
 								<select id="selSplitA">
 									<option value="" disabled></option>
 								</select>
 								<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
 									<span></span>
 									<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
+									<span>A</span>
 								</button>
 							</div>
-							<div uk-form-custom="target: > * > span:first-child">
+							<div uk-form-custom="target: > * > span:first-child" uk-tooltip="Program for Channel B in Split mode">
 								<select id="selSplitB">
 									<option value="" disabled></option>
 								</select>
 								<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
 									<span></span>
 									<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
+									<span>B</span>
 								</button>
 							</div>
 						</div>
 
 						<!-- Analog-to-digital controls on the box -->
-						<div id="levelMultiAdjust" class="uk-margin-top uk-grid-collapse uk-grid" uk-grid>
+						<div id="levelMultiAdjust" class="uk-grid-collapse uk-grid" uk-grid>
 							<div class="uk-width-1-5">
 								<label class="uk-form-label">Multi-Adjust</label>
 							</div>
@@ -134,20 +137,32 @@
 							<input class="uk-range uk-width-expand" type="range" min="0" max="99" />
 							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
 						</div>
+
+						<div id="powerLevel" class="uk-margin-small uk-grid-collapse uk-grid uk-text-middle" uk-grid>
+							<div class="uk-width-1-5">
+								<label class="uk-form-label uk-margin-remove">Power Level</label>
+							</div>
+							<div>
+								<span class="uk-label uk-label-success" value="1">Low</span>
+								<span class="uk-label uk-label-warning" value="2">Normal</span>
+								<span class="uk-label uk-label-danger" value="3">High</span>
+							</div>
+						</div>
+
 					</div>
 
-					<div id="dropTarget" class="uk-placeholder uk-text-center uk-text-top uk-padding-remove uk-cover-container">
+					<div id="dropTarget" class="uk-placeholder uk-text-center uk-text-top uk-padding-remove uk-margin-remove uk-cover-container">
 
-						<div id="fileName" class="uk-margin-small uk-float-left uk-text-meta gotFile">abc.mp3</div>
+						<div id="fileName" class="uk-margin-small uk-float-left uk-text-meta gotFile">placeholder</div>
 
 						<audio id="localAudio" title="local audio file" controls controlsList="nodownload" class="uk-width-1-1">
-							This browser does not support the audio element.
 						</audio>
 
-						<div class="uk-child-width-1-3 uk-grid" uk-grid>
+						<div class="uk-child-width-1-4 uk-grid" uk-grid>
 							<label><input class="uk-checkbox loop" type="checkbox"> Loop</label>
 							<label><input class="uk-checkbox autoplay" type="checkbox"> Autoplay</label>
 							<label><input class="uk-checkbox monitor" type="checkbox" id="ckMonitor"> Monitor</label>
+							<input id="backupVolume" hidden="true" class="uk-range" type="range" min="0" max="1" step="0.01">
 						</div>
 
 						<div class="preCover uk-text-meta uk-overlay uk-overlay-default uk-position-cover">
@@ -251,13 +266,21 @@
 		</div>
 
 		<div class="connectionFailed">
-
 			<b class="uk-text-danger">Connection Failed</b>
 			<ul>
 				<li>Verify the URL for this session with the sub.</li>
 				<li>Check that the Session ID is correct.</li>
 				<li>Make sure the sub is still presenting themselves for control by a remote user.</li>
+				<li>Try connecting again.</li>
 			</ul>
+		</div>
+
+		<div class="welcomeNoBox">
+			<b class="uk-text-danger">ET-312 Not Linked</b>
+			<p>You have successfully connected, but remote control is not enabled
+				because the sub has not linked an ET-312 box.</p>
+			<p>You can still share audio and video with the sub, and select an audiostim file.</p>
+			<p>Remote control will be automatically enabled once the sub links a box.</p>
 		</div>
 
 		<div class="mediaMissing">
@@ -289,7 +312,7 @@
 					</ol>
 				</li>
 				<li>In <b>Safari</b>, go to the <code>Safari | Settings for This Website...</code> menu on MacOS,
-				or access "Website Settings" via the "<b><span style="font-size: 75%">A</span></b>A" button in the address bar on iOS.</li>
+					or access "Website Settings" via the "<b><span style="font-size: 75%">A</span></b>A" button in the address bar on iOS.</li>
 			</ul>
 		</div>
 	</div>

@@ -134,6 +134,10 @@ class ET312Remote {
 		this._send({setMode: newMode});
 	}
 
+	setLevel(newLevel) {
+		this._send({setLevel: newLevel});
+	}
+
 	// Immediately stop stim output by changing to a non-existent mode
 	stop() {
 		this._send({stop: true});

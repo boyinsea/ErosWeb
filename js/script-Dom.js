@@ -5,6 +5,7 @@
 
 import { ET312Remote } from './ET312Remote.js';
 import { audioUI } from './audio2.js';
+import { webRTChelper } from './webRTC.js';
 
 const STATE = {
 	ctl: null,
@@ -41,14 +42,9 @@ document.addEventListener("DOMContentLoaded", () => {
 	UI.controls.addEventListener("submit", (e) => { e.preventDefault(); });
 
 	/*
-		Set Defaults from cookies and QueryString parameters
+		Set Defaults from local storage and QueryString parameters
 	*/
-	try {
-		UI.inputName.value = document.cookie
-			.split('; ')
-			.find(row => row.startsWith('sceneName'))
-			.split('=')[1];
-	} catch {}
+	UI.inputName.value = localStorage.getItem('sceneName');
 
 	const params = new URLSearchParams(window.location.search);
 	UI.inputSId.value = params.get('id');
@@ -59,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	*/
 	UI.modeArray.highlightMode = (newMode) => {
 
-		const currentModeButton = modeArray.querySelector('button.uk-button-primary');
+		const currentModeButton = UI.modeArray.querySelector('button.uk-button-primary');
 		if (currentModeButton && (newMode != currentModeButton.value)) {
 			currentModeButton.classList.replace('uk-button-primary', 'uk-button-secondary');
 		}
@@ -67,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		// highlight new mode, if any
 		if (0 == newMode) return; // Styling on "stop" mode is never changed
 
-		const newModeButton = modeArray.querySelector(`button[value="${newMode}"]`);
+		const newModeButton = UI.modeArray.querySelector(`button[value="${newMode}"]`);
 		if (newModeButton) {
 			newModeButton.classList.replace('uk-button-secondary', 'uk-button-primary');
 		}
@@ -86,6 +82,30 @@ document.addEventListener("DOMContentLoaded", () => {
 				STATE.ctl.stop();
 			} else {
 				STATE.ctl.setMode(newMode);
+			}
+		}
+	});
+
+	UI.powerLevel.highlightLevel = (level) => {
+		const currentButton = UI.powerLevel.querySelector('span.uk-label[selected]');
+		if (currentButton && (level != currentButton.value)) {
+			currentButton.removeAttribute('selected');
+		}
+		const newButton = UI.powerLevel.querySelector(`span.uk-label[value="${level}"]`);
+		if (newButton) newButton.setAttribute('selected', true);
+	};
+
+	UI.powerLevel.addEventListener("click", function (e) {
+
+		if (UI.powerLevel.classList.contains("interactive")) {
+			let newLevel = e.target.getAttribute("value");
+			if (newLevel) {
+				e.preventDefault();
+				newLevel = parseInt(newLevel);
+
+				// Dispatch new level to box.  Box will reply
+				// with an info message which triggers a UI update.
+				STATE.ctl.setLevel(newLevel);
 			}
 		}
 	});
@@ -126,12 +146,41 @@ document.addEventListener("DOMContentLoaded", () => {
 	audioUI.configureDropTarget(UI.dropTarget, UI.localAudio);
 
 	// Adjust UI when a new audio file is loaded.
-	UI.localAudio.addEventListener('loadedmetadata', () => {
+	UI.localAudio.addEventListener('loadedmetadata', async function () {
 		UI.dropTarget.classList.toggle("gotFileActive", true);
-		UI.dropTarget.querySelector("#fileName").innerText = localAudio.title;
-		let overlay = UI.dropTarget.querySelector('.preCover.uk-overlay');
+		UI.dropTarget.querySelector("#fileName").innerText = UI.localAudio.title;
+		const overlay = UI.dropTarget.querySelector('.preCover.uk-overlay');
 		if (overlay) overlay.classList.remove("uk-overlay", "uk-overlay-default", "uk-position-cover");
+
+		// Send file to remote sub
+		if (STATE.dataConn) {
+			const b = await fetch(UI.localAudio.currentSrc).then(r => r.blob());
+			STATE.dataConn.send({
+				estimAudioFile: {
+					file: b,
+					name: UI.localAudio.title,
+					size: b.size,
+					type: b.type,
+					duration: UI.localAudio.duration
+				}
+			});
+			console.log('file sent.');
+		}
 	});
+
+	// Configure backup volume control for Safari
+	// (default rendering doesn't work well in our layout)
+	if (("Apple Computer, Inc." == navigator.vendor) && UI.backupVolume) {
+		UI.backupVolume.hidden = false;
+		UI.backupVolume.value = UI.localAudio.volume;
+		UI.backupVolume.addEventListener("input", (e) => {
+			console.log(`${UI.backupVolume.value} .. ${UI.localAudio.volume}`);
+			UI.localAudio.volume = UI.backupVolume.value;
+		});
+		UI.localAudio.addEventListener('volumechange', (event) => {
+			console.log(`Volume ${UI.localAudio.volume}`);
+		});
+	}
 
 	// Give a one-time warning if playing an audiostim file but
 	// ET-312 isn't connected or set to an audio mode.
@@ -194,7 +243,7 @@ async function clickConnect() {
 		}
 
 		// Save last-used scene Name
-		document.cookie = `sceneName=${UI.inputName.value};path=/`;
+		localStorage.setItem('sceneName', UI.inputName.value);
 
 		// Prevent multiple button presses. Connection setup can take a minute;
 		// createPeerConnection will re-enable the button when ready.
@@ -209,9 +258,25 @@ async function clickConnect() {
 	} else {
 
 		// Tear down any connections in progress
-		STATE.dataConn = null;
-		STATE.peer.destroy();
-		STATE.peer = null;
+		// if (STATE.estimAudioConnection) {
+		// 	STATE.estimAudioConnection.close();
+		// 	STATE.estimAudioConnection = null;
+		// }
+
+		if (STATE.dataConn) {
+			// Save and null the STATE pointer to the data connection;
+			// this prevents the UI from warning that the remote sub
+			// closed the connection.
+			const c = STATE.dataConn;
+			STATE.dataConn = null;
+			c.close();
+		}
+
+		if (STATE.peer) {
+			STATE.peer.destroy();
+			STATE.peer = null;
+		}
+		console.log("DOM peer destroyed");
 
 		// Update UI to "not connected" state
 		toggleUIConnected(false);
@@ -238,10 +303,6 @@ function toggleUIConnected(connected) {
 		UI.inputPIN.classList.toggle('uk-form-danger', false);
 	} else {
 		refreshUI(false); // Visually disable box controls
-		if (STATE.peer) {
-			STATE.peer.destroy();
-			STATE.peer = null;
-		}
 	}
 }
 
@@ -249,8 +310,9 @@ function toggleUIConnected(connected) {
 const UI_UPDATE = {
 	MODENUM: (v) => UI.modeArray.highlightMode(v),
 	MAVALUE: (v) => UI.levelMultiAdjust.setValue(v),
-	ADC4: (v) => UI.levelA.setValue(Math.round((v / 255) * 99)),
-	ADC5: (v) => UI.levelB.setValue(Math.round((v / 255) * 99))
+	ADC4: (v) => UI.levelA.setValue(Math.round((v * 99) / 255)),
+	ADC5: (v) => UI.levelB.setValue(Math.round((v / 255) * 99)),
+	POWERLEVEL: (v) => UI.powerLevel.highlightLevel(v)
 
 	// TODO: Audio levels?
 
@@ -307,7 +369,13 @@ function createPeerConnection(destId) {
 	});
 
 	P.on('open', () => {
-		const dataConn = P.connect(destId, { metadata: { PIN: UI.inputPIN.value }, serialization: 'json' });
+		const dataConn = P.connect(destId, {
+			metadata: {
+				PIN: UI.inputPIN.value,
+				sceneName: UI.inputName.value,
+			},
+			serialization: 'json'
+		});
 
 		// Data received from remote sub
 		dataConn.on('data', (data) => {
@@ -317,23 +385,31 @@ function createPeerConnection(destId) {
 				console.log(`${prop} = ${JSON.stringify(obj)}`);
 				if ('welcome' == prop) {
 					if (true === obj) {
-						UIkit.notification('Connected!', { pos: 'top-left', status: 'success' });
+						// Display success message if the sub's ET-312 is linked.
+						// If not, that situation results in a more detailed modal dialog displayed below.
+						if (data.info) UIkit.notification('Connected!', { pos: 'top-left', status: 'success' });
+
 						STATE.dataConn = dataConn;
-						// STATE.ctl = new ET312Remote(dataConn);
 						toggleUIConnected(true);
 						STATE.dataConn.send({
-							sceneName: UI.inputName.value,
 							videoShare: Boolean(STATE.videoShare)
 						});
 
 						// Create MediaConnection for estim audio
-						const estimAudioConnection = P.call(
+						STATE.estimAudioConnection = P.call(
 							destId,
-							UI.localAudio.stream, { metadata: { estimAudio: true } }
+							UI.localAudio.stream, {
+								metadata: { estimAudio: true },
+								sdpTransform: (sdp) => {
+									const sdp2 = webRTChelper.sdpAudio(sdp);
+									console.log(sdp2);
+									return sdp2;
+								}
+							}
 						);
 
 						// if we are currently sharing audio/video, call the sub
-						if (STATE.videoShare) gotConnection(P.call(destId, STATE.videoShare));
+						if (STATE.videoShare) gotConnection(P.call(destId, STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }));
 
 					} else if (false === obj) {
 						// welcome: false means the remote sub wants to close the connection.
@@ -346,6 +422,7 @@ function createPeerConnection(destId) {
 					}
 				}
 
+				// sub's scene name, for UI
 				if ('sceneName' == prop) UI.subName.textContent = obj;
 
 				// Information about the sub's ET-312 box.  false == no box connected
@@ -356,9 +433,27 @@ function createPeerConnection(destId) {
 						refreshUI(obj);
 					} else {
 						STATE.ctl = null;
-						UIkit.notification(
+
+						// if this is part of the initial "welcome" message, display a warning
+						if (true == data.welcome) {
+							showAlert('welcomeNoBox');
+						} else UIkit.notification(
 							"Remote control of the sub's ET-312 box is disabled.", { pos: 'top-left', status: 'warning' }
 						);
+					}
+				}
+
+				// Information about scene limits
+				if ('limits' == prop) {
+					for (const limit in obj) {
+						let v = obj[limit];
+						console.log(`LIMIT: ${limit}: ${v}`);
+						if ('changePowerLevel' == limit) {
+							UI.powerLevel.classList.toggle('interactive', v);
+						} else if ('maxLevel' == limit) {
+							UI.levelA.setLimit(v);
+							UI.levelB.setLimit(v);
+						}
 					}
 				}
 
@@ -372,7 +467,7 @@ function createPeerConnection(destId) {
 						if (STATE.mediaConnection) STATE.mediaConnection.close();
 
 						// Call back so sub can reply with their video stream.
-						gotConnection(P.call(dataConn.peer, STATE.videoShare));
+						gotConnection(P.call(dataConn.peer, STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }));
 					}
 
 					// Sub has stopped sharing video; adjust our UI.
@@ -386,14 +481,21 @@ function createPeerConnection(destId) {
 		});
 
 		dataConn.on('close', () => {
+
+			if (STATE.estimAudioConnection) {
+				STATE.estimAudioConnection.close();
+				STATE.estimAudioConnection = null;
+			}
+
+			STATE.ctl = null;
+			toggleUIConnected(false);
+
 			// If we are still holding a data connection object,
 			// this means that the sub has ended the scene.
 			if (STATE.dataConn) {
 				STATE.dataConn = null;
 				UIkit.modal.alert(`Remote sub has ended the scene.`);
 			}
-			STATE.ctl = null;
-			toggleUIConnected(false);
 		});
 
 		dataConn.on('error', (err) => {
@@ -407,13 +509,16 @@ function createPeerConnection(destId) {
 		STATE.peer = null; // Drop reference to the peer object so we can try again.
 		if (err.message.startsWith('Could not connect to peer '))
 			UI.inputSId.classList.toggle('uk-form-danger', true);
-		showAlert('connectionFailed', err).then(() => { UI.butConnect.disabled = false; })
+		showAlert('connectionFailed', err).then(() => {
+			toggleUIConnected(false);
+			UI.butConnect.disabled = false;
+		});
 	});
 
 	P.on('call', (mediaConnection) => {
 		// This happens when the sub attempts to connect with audio/video
 		// console.log("Received a call; answering...");
-		mediaConnection.answer(STATE.videoShare);
+		mediaConnection.answer(STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice });
 		gotConnection(mediaConnection);
 	});
 
@@ -475,17 +580,15 @@ async function clickShare() {
 
 			// If connected to remote, send our audio/video now
 			if (STATE.dataConn) {
-				// console.log(`${Date.now()} Sending video/audio.`);
-
 				// Close any existing connection
 				if (STATE.mediaConnection) STATE.mediaConnection.close();
-				gotConnection(STATE.peer.call(UI.inputSId.value, STATE.videoShare));
-
+				gotConnection(STATE.peer.call(UI.inputSId.value, STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }));
 			}
 		} catch (e) {
 			if (
 				((e instanceof DOMException) && (DOMException.NOT_FOUND_ERR == e.code)) ||
-				((e instanceof OverconstrainedError) && ("OverconstrainedError" == e.name))
+				(("OverconstrainedError" == e.name) && (e instanceof OverconstrainedError)) ||
+				((e instanceof Error) && ("NotFoundError" == e.name))
 			) {
 				showAlert('mediaMissing', e);
 			} else if ((e instanceof DOMException) && ('NotAllowedError' == e.name)) {
@@ -602,23 +705,34 @@ function configureSlider(sliderDiv, inverse) {
 		const curValue = parseInt(range.value);
 		return (inverse) ? parseInt(range.max) - curValue + parseInt(range.min) : curValue;
 	};
+	sliderDiv.setLimit = (limit) => {
+		range.limit = limit;
+		if (range.value > range.limit) range.setValue(limit);
+	};
 
 	const badge = sliderDiv.getElementsByClassName("uk-badge")[0];
-	if (badge) {
-		range.addEventListener("input", (e) => {
-			badge.innerText = range.value;
-		});
-	}
+	range.addEventListener("input", (e) => {
+		if (range.value > range.limit) {
+			console.log(`Value: ${range.value}; Limit: ${range.limit} [${sliderDiv}]`);
+			e.stopPropagation();
+			e.preventDefault();
+			range.value = range.limit;
+			sliderDiv.classList.toggle('atLimit', true);
+			setTimeout(() => { sliderDiv.classList.toggle('atLimit', false); }, 2250);
+		} else if (badge) badge.innerText = range.value;
+	}, { capture: true });
 
 	const upDown = sliderDiv.getElementsByTagName('button');
-	upDown[0].addEventListener("click", (e) => {
-		range.stepDown();
-		range.dispatchEvent(new Event('input', { bubbles: true }));
-		range.dispatchEvent(new Event('change', { bubbles: true }));
-	});
-	upDown[1].addEventListener("click", (e) => {
-		range.stepUp();
-		range.dispatchEvent(new Event('input', { bubbles: true }));
-		range.dispatchEvent(new Event('change', { bubbles: true }));
-	});
+	if (2 == upDown.length) {
+		upDown[0].addEventListener("click", (e) => {
+			range.stepDown();
+			range.dispatchEvent(new Event('input', { bubbles: true }));
+			range.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+		upDown[1].addEventListener("click", (e) => {
+			range.stepUp();
+			range.dispatchEvent(new Event('input', { bubbles: true }));
+			range.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+	}
 }

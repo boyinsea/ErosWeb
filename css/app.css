@@ -13,6 +13,10 @@ audio:focus {
 	outline: none;
 }
 
+audio::-webkit-media-controls-volume-slider-container {
+    display: none !important;
+}
+
 button[uk-icon].uk-button-small {
 	color: rgb(144, 144, 144);
 	padding-left: 15px;
@@ -104,6 +108,43 @@ span.uk-label.click.disabled {
 span.uk-label.click:not(.disabled) {
 	cursor: pointer;
 }
+
+form#controls div input[type="range"],
+form#controls div span.uk-badge {
+	border-width: 1px;
+	border-style: transparent;
+	border-color: red;
+	transition: border-style 2s;
+	transition: background 1s;
+}
+
+div.atLimit input[type="range"] {
+	border-style: solid;
+}
+
+div.atLimit span.uk-badge {
+	background: red;
+}
+
+div#powerLevel {
+	cursor: default;
+}
+
+div.disabled div#powerLevel span {
+	background-color: inherit;
+	opacity: 50%
+}
+
+div.disabled div#powerLevel span.uk-label,
+div:not(.disabled) div#powerLevel span.uk-label:not([selected]) {
+	background-color: rgb(239, 239, 239);
+	color: inherit;
+}
+
+div:not(.disabled) .interactive span.uk-label:not([selected]) {
+	cursor: pointer;
+}
+
 
 .sub .uk-logo {
 	color: #e70039 !important;

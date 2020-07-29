@@ -14,8 +14,10 @@ class audioUI {
 
 		window.addEventListener("click", () => {
 			const ctx = this.getAudioCtx();
-			console.log(`Resuming audioContext (current state: ${ctx.state})`);
-			ctx.resume();
+			if ('running' != ctx.state) {
+				console.log(`Resuming audioContext (current state: ${ctx.state})`);
+				ctx.resume();
+			}
 		}, { once: true });
 
 	}
@@ -204,8 +206,6 @@ class audioUI {
 
 		} else {
 
-window.xPlayer = player;
-
 			// Shortcut if output destination is not selectable
 			if (!player.monitorOutput) {
 				if (player.monitor instanceof GainNode)
@@ -256,14 +256,9 @@ window.xPlayer = player;
 		} else if (list.length && ("" != list[0].value)) {
 			// Device selection is enabled, and a choice of devices exists
 
-			// Get previous default, if any, from cookie
-			let defaultDest = 'default';
-			try {
-				defaultDest = document.cookie
-					.split('; ')
-					.find(row => row.startsWith(selectorDiv.id))
-					.split('=')[1];
-			} catch {}
+			// Get previous default, if any
+			let defaultDest = localStorage.getItem(selectorDiv.id);
+			if (!defaultDest) defaultDest = 'default';
 
 			// Populate select list, taking previous selection into account.
 			list.forEach(child => {
@@ -276,7 +271,7 @@ window.xPlayer = player;
 			selector.addEventListener('change', async function (e) {
 
 				// Save last-used value
-				document.cookie = `${selectorDiv.id}=${e.target.value};path=/`;
+				localStorage.setItem(selectorDiv.id, e.target.value);
 
 				// If this selector controls a player and it is set up for monitoring,
 				// manipulate the player's output object.  If not, just manipulate the player.
@@ -288,7 +283,7 @@ window.xPlayer = player;
 				}
 			});
 
-			// If selected device (net of cookie) isn't the default,
+			// If selected device (net of saved values) isn't the default,
 			// switch to it now.
 			if (('default' != defaultDest) && ('default' != selector.value))
 				selector.dispatchEvent(new Event('change'));
@@ -483,7 +478,7 @@ window.xPlayer = player;
 			await player.setSinkId(deviceId);
 			player.play();
 		} else {
-			// Output device selection isn't possible (Safari)
+			// Output device selection isn't possible (Safari/Firefox)
 			gain.connect(this.getAudioCtx().destination);
 		}
 

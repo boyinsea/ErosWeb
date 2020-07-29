@@ -6,6 +6,7 @@
 import { ET312Serial } from './ET312.js';
 import { ET312Controller } from './ET312Controller.js';
 import { audioUI } from './audio2.js';
+import { webRTChelper } from './webRTC.js';
 
 const STATE = {
 	et312: null,
@@ -43,8 +44,8 @@ document.addEventListener("DOMContentLoaded", () => {
 	// Do final visual fixups when all elements are loaded and styled into final form.
 	window.addEventListener("load", () => {
 		if (UI.notSupported.hidden) {
-			resize(UI.log);
 			UI.appUi.hidden = false; // Show the UI once it is all configured.
+			resize(UI.log);
 		}
 	});
 
@@ -85,13 +86,35 @@ document.addEventListener("DOMContentLoaded", () => {
 	// submit-type events from inadvertently resetting the form.
 	UI.controls.addEventListener("submit", (e) => { e.preventDefault(); });
 
-	// Restore page defaults
-	try {
-		UI.inputName.value = document.cookie
-			.split('; ')
-			.find(row => row.startsWith('sceneName'))
-			.split('=')[1];
-	} catch {}
+	/*
+		Configure ET-312 Controls
+	*/
+	UI.powerLevel.highlightLevel = (level) => {
+
+		const currentButton = UI.powerLevel.querySelector('span.uk-label[selected]');
+		if (currentButton && (level != currentButton.value)) {
+			currentButton.removeAttribute('selected');
+		}
+		const newButton = UI.powerLevel.querySelector(`span.uk-label[value="${level}"]`);
+		if (newButton) newButton.setAttribute('selected', true);
+	};
+
+	UI.powerLevel.addEventListener("click", async function (e) {
+		let newLevel = e.target.getAttribute("value");
+		if (newLevel) {
+			e.preventDefault();
+			newLevel = parseInt(newLevel);
+
+			// Dispatch set level command to box & update remote peer, if any
+			doCommand(STATE.ctl.setPowerLevel, newLevel)
+			UI.powerLevel.highlightLevel(newLevel);
+		}
+	});
+
+	/*
+		Configure settings/limits UI
+	*/
+	configureSlider(UI.limitMaxLevel);
 
 	/*
 		Connect buttons and other UI components
@@ -105,10 +128,22 @@ document.addEventListener("DOMContentLoaded", () => {
 	UI.estimAudioDest.nextElementSibling.addEventListener("click", testAudioOutput);
 	UI.localAudioDest.nextElementSibling.addEventListener("click", testAudioOutput);
 	UI.microphoneInput.nextElementSibling.addEventListener("click", testMicLevel);
+	UI.pnlLimits.querySelector("BUTTON.uk-offcanvas-close").addEventListener("click", () => {
+		localStorage.setItem('limitPowerLevel', UI.limitPowerLevel.checked);
+		localStorage.setItem('limitMaxLevel', UI.limitMaxLevel.getValue());
+		if (STATE.dataConn) STATE.dataConn.send({ limits: getLimits() });
+	});
 
 	// Finalize audio component setup
 	UI.estimAudio = new Audio(); // Renderer only; not present in UI.
 	UI.audioUI = new audioUI();
+
+	// Restore page defaults
+	UI.inputName.value = localStorage.getItem('sceneName');
+	let limitMaxLevel = Number(localStorage.getItem('limitMaxLevel'));
+	if (0 == limitMaxLevel) limitMaxLevel = 99;
+	UI.limitMaxLevel.setValue(limitMaxLevel);
+	UI.limitPowerLevel.checked = ("true" === localStorage.getItem('limitPowerLevel'));
 
 	// Initialize application state and audio components
 	toggleState(false, false)
@@ -192,7 +227,16 @@ async function toggleState(conn, box) {
 					STATE.et312 = null;
 				}
 			}
-			if (STATE.et312 && !STATE.ctl) STATE.ctl = new ET312Controller(STATE.et312);
+
+			// Instantiate controller
+			if (STATE.et312 && !STATE.ctl) {
+				STATE.ctl = new ET312Controller(STATE.et312);
+				// Get initial box status and update UI elements
+				STATE.ctl.getInfo()
+					.then((info) => {
+						UI.powerLevel.highlightLevel(info.POWERLEVEL);
+					});
+			}
 		}
 	}
 
@@ -255,10 +299,13 @@ async function toggleState(conn, box) {
 		}
 	}
 
-	// UI
-	UI.pnlSession.classList.toggle("connected", Boolean(conn));
-	UI.iconBoxLink.classList.toggle("connected", Boolean(box));
-	UI.iconLink.classList.toggle("connected", Boolean(box) & Boolean(conn));
+	// UI configuration net of any changes
+	box = Boolean(STATE.et312);
+	conn = Boolean(STATE.dataConn);
+	UI.controlsOnline.classList.toggle("disabled", !box);
+	UI.pnlSession.classList.toggle("connected", conn);
+	UI.iconBoxLink.classList.toggle("connected", box);
+	UI.iconLink.classList.toggle("connected", box & conn);
 }
 
 
@@ -293,7 +340,7 @@ async function clickPresent() {
 		}
 
 		// Save last-used scene Name
-		document.cookie = `sceneName=${UI.inputName.value};path=/`;
+		localStorage.setItem('sceneName', UI.inputName.value);
 
 		// Prevent multiple button presses
 		UI.butPresent.disabled = true;
@@ -346,7 +393,7 @@ function createPeerConnection(name) {
 		hash = ((hash << 5) - hash) + name.charCodeAt(i++);
 		hash |= 0;
 	}
-	const sessionId = idFormat(/*Date.now().toString(36) +*/ Math.abs(hash).toString(36));
+	const sessionId = idFormat( /*Date.now().toString(36) +*/ Math.abs(hash).toString(36));
 
 	UI.log.textContent += `Preparing to go online...\n`;
 	const P = new Peer(sessionId, {
@@ -368,9 +415,11 @@ function createPeerConnection(name) {
 
 	P.on('error', (err) => {
 		UI.log.textContent += `${err}\nConnection failed, try to Present again.\n`;
-		UI.butPresent.disabled = false;
+		STATE.peer.destroy();
+		STATE.peer = null;
 		toggleUIPresent(false);
 		toggleState(false, STATE.ctl);
+		showAlert('connectionFailed', err);
 	});
 
 	// This happens when a remote peer establishes a data connection.
@@ -378,7 +427,7 @@ function createPeerConnection(name) {
 	P.on('connection', (dataConnection) => {
 
 		// This event occurs once, the very first time the connection is ready to use.
-		dataConnection.on('open', async function() {
+		dataConnection.on('open', async function () {
 
 			// Validate PIN, if any
 			const PIN = UI.inputPIN.value;
@@ -391,24 +440,29 @@ function createPeerConnection(name) {
 				return;
 			}
 
+			// UI
+			const sceneName = dataConnection.metadata.sceneName;
+			UI.domName.textContent = sceneName;
+			UI.log.textContent += `${sceneName} has connected.\n`;
+			UIkit.notification(`<b>${sceneName}</b> has connected.`, { pos: 'top-left', status: 'success' });
+
 			toggleState(true, STATE.ctl); // Toggle app into "connected" mode
-			STATE.dataConn = dataConnection;
 
 			// If ET-312 box is connected, get current status information
-			let info;
-			if (STATE.ctl) {
-				info = await STATE.ctl.getInfo(true);
-			} else {
-				info = false;
-			}
+			let info = false;
+			if (STATE.ctl) info = await STATE.ctl.getInfo(true);
 
 			// Send welcome message
 			dataConnection.send({
 				welcome: true,
 				sceneName: UI.inputName.value,
 				videoShare: Boolean(STATE.videoShare),
-				info: info
+				info: info,
+				limits: getLimits()
 			});
+
+			STATE.dataConn = dataConnection; // Save data connection object
+
 		});
 
 		// This event occurs every time a data message is received
@@ -417,15 +471,9 @@ function createPeerConnection(name) {
 				let obj = data[prop];
 				console.log(`${prop}: ${JSON.stringify(obj)}`);
 
-				// UI
-				if ('sceneName' == prop) {
-					UI.domName.textContent = obj;
-					UI.log.textContent += `${obj} has connected.\n`;
-					UIkit.notification(`<b>${obj}</b> has connected.`, { pos: 'top-left', status: 'success' });
-				}
-
 				// Box command dispatch
 				if ('setMode' == prop) doCommand(STATE.ctl.setMode, obj);
+				if ('setLevel' == prop) doCommand(STATE.ctl.setPowerLevel, obj);
 				if ('stop' == prop) doCommand(STATE.ctl.stop);
 				if ('setValue' == prop) doCommand(STATE.ctl.setValue, obj.address, obj.value);
 
@@ -434,7 +482,15 @@ function createPeerConnection(name) {
 				// ready to share video.  We only need to make a call when
 				// the Dom reports that they are NOT sharing video.
 				if (('videoShare' == prop) && !obj && STATE.videoShare) {
-					STATE.mediaConnection = P.call(STATE.dataConn.peer, STATE.videoShare);
+					STATE.mediaConnection = P.call(
+						STATE.dataConn.peer,
+						STATE.videoShare, { sdpTransform: webRTChelper.sdpAudio });
+				}
+
+				// Estim Audio File
+				if ('estimAudioFile' == prop) {
+					console.log('Received estim audio file:');
+					console.dir(obj);
 				}
 			}
 		});
@@ -444,6 +500,10 @@ function createPeerConnection(name) {
 				UI.log.textContent += `${UI.domName.textContent} disconnected.\n`;
 				UIkit.notification(`<b>${UI.domName.textContent}</b> disconnected.`, { pos: 'top-left', status: 'primary' });
 				STATE.dataConn = null;
+			}
+			if (STATE.estimAudioConnection) {
+				STATE.estimAudioConnection.close();
+				STATE.estimAudioConnection = null;
 			}
 			toggleState(false, STATE.ctl);
 		});
@@ -459,7 +519,9 @@ function createPeerConnection(name) {
 	P.on('call', (mediaConnection) => {
 
 		if (mediaConnection.metadata && (true == mediaConnection.metadata.estimAudio)) {
-			mediaConnection.answer(null);
+
+			mediaConnection.answer(null, { sdpTransform: webRTChelper.sdpAudio });
+			STATE.estimAudioConnection = mediaConnection;
 
 			mediaConnection.on('stream', (stream) => {
 				UI.estimAudio.autoplay = true;
@@ -468,8 +530,10 @@ function createPeerConnection(name) {
 			});
 
 			mediaConnection.on('close', () => {
+				console.log("estim audio connection closed");
 				UI.estimAudio.pause();
 				UI.estimAudio.srcObject = null;
+				STATE.estimAudioConnection = null;
 				UI.iconEstimAudio.classList.toggle("connected", false);
 			});
 
@@ -477,7 +541,7 @@ function createPeerConnection(name) {
 
 			if (STATE.mediaConnection) STATE.mediaConnection.close();
 
-			mediaConnection.answer(STATE.videoShare);
+			mediaConnection.answer(STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice });
 			STATE.mediaConnection = mediaConnection;
 
 			// This happens when remote audio/video arrives from the Dom
@@ -502,15 +566,20 @@ function createPeerConnection(name) {
 
 // Process a box command received from the remote Dom;
 // reply with an updated {info} object reflecting the result
-// of the command.  Some commands return an object; others
+// of the command and update the local UI as required.
+// Some commands return an object; others
 // return a scalar value or nothing; in that case, send
 // a small heartbeat snapshot instead.
 async function doCommand(f, ...params) {
 	let info = await f(...params);
 	if (!info || ('object' != typeof (info))) info = await STATE.ctl.getInfo(true);
-	STATE.dataConn.send({ info: info });
-}
+	if (STATE.dataConn) STATE.dataConn.send({ info: info });
 
+	for (const prop in info) {
+		let v = info[prop];
+		if ('POWERLEVEL' == prop) UI.powerLevel.highlightLevel(v);
+	}
+}
 
 // Format an ID string into chunks
 function idFormat(idText) {
@@ -568,7 +637,10 @@ async function clickShare() {
 					// close connection and call back.
 					if (STATE.dataConn) STATE.dataConn.send({ videoShare: true });
 				} else {
-					STATE.mediaConnection = STATE.peer.call(STATE.dataConn.peer, STATE.videoShare);
+					STATE.mediaConnection = STATE.peer.call(
+						STATE.dataConn.peer,
+						STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }
+					);
 				}
 			}
 		} catch (e) {
@@ -596,6 +668,14 @@ async function clickShare() {
 	}
 }
 
+// Save scene limits in local storage.
+// Transmit to remote Dom if connected.
+function getLimits() {
+	return {
+		changePowerLevel: UI.limitPowerLevel.checked,
+		maxLevel: UI.limitMaxLevel.getValue()
+	};
+}
 
 /*
 	AUDIO / VIDEO SETUP
@@ -674,4 +754,45 @@ function showAlert(name, err) {
 	let h = e.innerHTML;
 	if (err) h += `<pre>${err}</pre>`;
 	return UIkit.modal.alert(h);
+}
+
+// Configure the <range>, <span>/badge, and <button> elements within
+// a DIV to create an interactive slider control.
+// UPDATED VERSION - +/- buttons optional
+function configureSlider(sliderDiv, inverse) {
+
+	const range = sliderDiv.querySelector('input[type="range"]');
+	sliderDiv.setRange = (low, high) => {
+		range.min = low;
+		range.max = high;
+	};
+	sliderDiv.setValue = (newValue) => {
+		range.value = (inverse) ? parseInt(range.max) - newValue + parseInt(range.min) : newValue;
+		range.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+	};
+	sliderDiv.getValue = () => {
+		const curValue = parseInt(range.value);
+		return (inverse) ? parseInt(range.max) - curValue + parseInt(range.min) : curValue;
+	};
+
+	const badge = sliderDiv.getElementsByClassName("uk-badge")[0];
+	if (badge) {
+		range.addEventListener("input", (e) => {
+			badge.innerText = range.value;
+		});
+	}
+
+	const upDown = sliderDiv.getElementsByTagName('button');
+	if (2 == upDown.length) {
+		upDown[0].addEventListener("click", (e) => {
+			range.stepDown();
+			range.dispatchEvent(new Event('input', { bubbles: true }));
+			range.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+		upDown[1].addEventListener("click", (e) => {
+			range.stepUp();
+			range.dispatchEvent(new Event('input', { bubbles: true }));
+			range.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+	}
 }

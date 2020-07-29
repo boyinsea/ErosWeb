@@ -29,11 +29,11 @@
 	<link rel="stylesheet" href="css/app.css" />
 	<script src="js/lib/uikit.min.js" defer></script>
 	<script src="js/lib/uikit-icons.min.js" defer></script>
+	<script src="js/lib/peerjs.min.js"></script>
 	<script type="module" src="js/script-sub.js" defer></script>
 	<script type="module" src="js/ET312.js" defer></script>
 	<script type="module" src="js/ET312Controller.js" defer></script>
 	<!-- <script type="module" src="js/audio2.js" defer></script> -->
-	<script src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js"></script>
 </head>
 
 <body>
@@ -44,7 +44,8 @@
 					<span class="uk-navbar-item uk-logo">ErosWeb – ET-312 Remote Control</span>
 				</div>
 				<div class="uk-navbar-right">
-					<a href="#pnlConfigAV" class="uk-icon" uk-icon="cog" uk-toggle uk-tooltip="Configure audio output, camera, and microphone."></a>
+					<a href="#pnlLimits" class="uk-navbar-item uk-icon" uk-icon="ban" uk-toggle uk-tooltip="Set Scene Limits"></a>
+					<a href="#pnlConfigAV" class="uk-navbar-item uk-icon" uk-icon="cog" uk-toggle uk-tooltip="Configure audio output, camera, and microphone."></a>
 					<span class="uk-navbar-item"><b>sub</b>&nbsp;Mode</span>
 				</div>
 			</div>
@@ -63,7 +64,7 @@
 			</div>
 		</div>
 
-		<div id="appUi" class="uk-inline" uk-height-viewport="offset-top: true">
+		<div id="appUi" class="uk-inline" uk-height-viewport="offset-top: true" hidden="true">
 
 			<div id="pnlSessionControl" class="uk-card uk-card-small uk-card-body uk-form-horizontal uk-width-1-1 uk-padding-remove-bottom">
 				<input id="inputName" class="uk-input uk-width-1-5" type="text" placeholder="Name">
@@ -97,6 +98,15 @@
 						<span id="iconEstimAudio" uk-tooltip="Indicates Dom can provide estim audio content">
 							<img uk-svg width="20" height="20" viewBox="0 0 20 20" src="./assets/speaker.svg" />
 						</span>
+					</div>
+
+					<div id="controlsOnline">
+						<div id="powerLevel" class="uk-margin-small interactive">
+							<span class="uk-text-middle">Power Level: </span>
+							<span class="uk-label uk-label-success" value="1">Low</span>
+							<span class="uk-label uk-label-warning" value="2">Normal</span>
+							<span class="uk-label uk-label-danger" value="3">High</span>
+						</div>
 					</div>
 
 					<pre id="log" class="uk-margin-remove uk-overflow-auto"></pre>
@@ -184,6 +194,33 @@
 		</div>
 
 
+		<!-- Slide-in area for setting scene limits -->
+		<div id="pnlLimits" uk-offcanvas="overlay: true">
+			<div class="uk-offcanvas-bar">
+
+				<button class="uk-offcanvas-close" type="button" uk-close>Click to Save&nbsp;</button>
+
+				<h3>Scene Limits</h3>
+				<form>
+					<fieldset class="uk-fieldset">
+
+						<div class="uk-margin">
+							<label class="uk-form-label"><input id="limitPowerLevel" class="uk-checkbox" type="checkbox" />
+								<span>Allow remote Dom to change box power level (Low/Normal/High)</span>
+							</label>
+						</div>
+
+						<div id="limitMaxLevel" class="uk-margin">
+							<label class="uk-form-label" for="levelA">Limit maximum output level to:<span class="uk-badge uk-margin-small-left"></span></label>
+							<input class="uk-range uk-width-expand" type="range" min="0" max="99" />
+						</div>
+
+					</fieldset>
+				</form>
+			</div>
+		</div>
+
+
 		<!-- MODAL DIALOGS -->
 		<div class="alert">
 			<div class="connectionLost">
@@ -207,39 +244,44 @@
 				</ul>
 			</div>
 
-		<div class="mediaMissing">
-			<b class="uk-text-danger">Missing Media Device</b>
-			<p>ErosWeb was not able to access an audio or video device needed for sharing.</p>
-			<ul>
-				<li>Make sure your webcam or other device is connected and turned on.</li>
-				<li>If using a built-in camera, make sure it is enabled.</li>
-				<li>Check your communication settings (click on the <span class="uk-icon" uk-icon="cog"></span>
-					icon in the page header).</li>
-				<li>Is your laptop open?</li>
-			</ul>
-		</div>
+			<div class="mediaMissing">
+				<b class="uk-text-danger">Missing Media Device</b>
+				<p>ErosWeb was not able to access an audio or video device needed for sharing.</p>
+				<ul>
+					<li>Make sure your webcam or other device is connected and turned on.</li>
+					<li>If using a built-in camera, make sure it is enabled.</li>
+					<li>Check your communication settings (click on the <span class="uk-icon" uk-icon="cog"></span>
+						icon in the page header).</li>
+					<li>Is your laptop open?</li>
+				</ul>
+			</div>
 
-		<div class="GUMCoach">
-			<h3 class="uk-modal-title uk-text-danger">Device Access Blocked</h3>
-			<p>ErosWeb cannot share audio and video because you have blocked access to the
-				camera and/or microphone.  Fix this by adjusting the security settings in your browser:</p>
-			<ul>
-				<li><b>Google Chrome</b>
-					<ol>
-						<li>Navigate to <code>chrome://settings/content</code></li>
-						<li>Check both the "microphone" and "camera" sections</li>
-						<li>Reset permissions for the site
-							<code textContent="document.location.origin"></code>
-						</li>
-					</ol>
-				</li>
-				<li><b>Safari on Mac (MacOS)</b>: go to the <code>Safari | Settings for This Website...</code> menu.</li>
-				<li><b>Safari on iOS</b>: access "Website Settings" via the "<b><span style="font-size: 75%">A</span>A</b>"
-				button in the address bar.</li>
-			</ul>
-		</div>
+			<div class="connectionFailed">
+				<b class="uk-text-danger">Connection Failed</b>
+				<p>The connection to the server has been lost.  Try to Present again.</p> 
+			</div>
 
-		<!-- Modal dialog to coach the user on enabling access to A/V devices
+			<div class="GUMCoach">
+				<h3 class="uk-modal-title uk-text-danger">Device Access Blocked</h3>
+				<p>ErosWeb cannot share audio and video because you have blocked access to the
+					camera and/or microphone. Fix this by adjusting the security settings in your browser:</p>
+				<ul>
+					<li><b>Google Chrome</b>
+						<ol>
+							<li>Navigate to <code>chrome://settings/content</code></li>
+							<li>Check both the "microphone" and "camera" sections</li>
+							<li>Reset permissions for the site
+								<code textContent="document.location.origin"></code>
+							</li>
+						</ol>
+					</li>
+					<li><b>Safari on Mac (MacOS)</b>: go to the <code>Safari | Settings for This Website...</code> menu.</li>
+					<li><b>Safari on iOS</b>: access "Website Settings" via the "<b><span style="font-size: 75%">A</span>A</b>"
+						button in the address bar.</li>
+				</ul>
+			</div>
+
+			<!-- Modal dialog to coach the user on enabling access to A/V devices
 		<div class="GUMCoach">
 			<div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical">
 				<h3 class="uk-modal-title">Please allow access to the microphone</h3>
@@ -266,7 +308,7 @@
 			</div>
 		</div>
 	-->
-	</div>
+		</div>
 
 </body>
 
