@@ -1,7 +1,7 @@
 # ErosWeb How-To
 
 ## Physically Connecting the ET-312
-The ET-312 power unit connects to a RS-232 serial port on a computer via the "Link" port, using a special cable.
+The ET-312 power unit connects to a computer via the "Link" port on the ET-312, a RS-232 serial port on the computer, and a special cable.
 
 #### Getting an RS-232 Serial Port
 RS-232 hardware is relatively rare on modern computers, so a USB-to-serial adapter can be useful.  [Amazon has a wide selection](https://www.amazon.com/s?k=usb-to-serial); be sure to choose a product that is compatible with your operating system.
@@ -15,7 +15,7 @@ Once the serial port hardware is installed and working according to the manufact
 
 #### Connecting to the ET-312 "Link" Port
 
-The cable used to connect the DB9 serial port on the computer to the 3.5mm stereo "Link" jack on the box is readily available from ErosTek and other sources:
+The special cable used to connect the DB9 serial port on the computer to the 3.5mm stereo "Link" jack on the box is readily available from ErosTek and other sources:
 
 * [Relper Lineso DB9Pin Female to DC3.5mm Serial Cable](https://www.amazon.com/gp/product/B06Y98F6D5)
 * [EROSLINK SERIAL CABLE](https://erostek.com/collections/wiring/products/eroslink-serial-cable)
@@ -34,18 +34,18 @@ These instructions pertain to the sub, who is responsible for technology set-up 
 
 #### Linking the ET-312
 1. Turn **off** the ET-312 box.
-2. Connect the ET-312 "Link" port to your computer using the USB-to-Serial cable (if required) and DB9-to-stereo plug cable.
+2. Connect the ET-312 "Link" port to your computer using a USB-to-Serial adapter cable (if required) and the special DB9-to-stereo-plug cable.
 3. Using Google Chrome, go to the [ErosWeb sub page](/sub.html).
 4. Turn **on** the ET-312 box.
 5. Click "Link ET-312" on the ErosWeb page.
 6. Choose the serial port that the ET-312 is connected to. This may require some trial and error.  On MacOS, the correct port is usually indicated by `(tty.usbserial)`.
-7. Once connected, ErosWeb will report "ET-312 linked and ready" and report the current power level of the box (Low, Normal, or High).
+7. Once connected, ErosWeb will report "ET-312 linked and ready" and display the current power level of the box (Low, Normal, or High).
 8. You may still use the front panel controls to adjust the ET-312 output levels and mode.  You can control the overall power level of the box via the ErosWeb application.
 
 #### Presenting
 
 "Presenting" refers to making yourself and your ET-312 available for remote control over the Internet.  When ready,
-1. Enter your "scene name" where indicated.
+1. Enter a "scene name" to identify yourself to the remote Dom.
 2. Optionally, enter a PIN.  Any remote Dom will need to know the PIN in order to connect.
 3. Click "Present".
 4. ErosWeb will report your Session ID.  Click on "Copy Link" to get a direct link to your session; send this to the remote Dom.  You can also just send the Dom the session ID (and PIN, if any) so They can enter it into the [ErosWeb Dom page](/Dom.html).
@@ -63,7 +63,14 @@ Be sure to click on the "close" icon in the upper-right corner of the Scene Limi
 
 #### Ending the Scene
 
-The scene ends when the Dom disconnects or when you click the "End Scene" button.  If the Dom disconnected, another Dom can connect and begin a new scene until you press the "End Scene" button.
+The scene ends when
+* the Dom disconnects.
+* you click the "End Scene" button.
+* internet connectivity to the remote Dom is lost.
+
+In any of these cases, the ET-312 power output will ramp down and the box will go into a "paused" mode with no program selected.
+
+If the Dom disconnected, another Dom can connect and begin a new scene until you press the "End Scene" button.
 
 #### Unlinking the ET-312
 
@@ -71,4 +78,20 @@ The scene ends when the Dom disconnects or when you click the "End Scene" button
 
 ## Controlling a Remote sub
 
+1. Follow the link provided by the sub, or go to the [Dom page](/Dom.html) and enter the Session ID (and PIN, if any).
+2. Enter a "scene name" to identify Yourself to the remote sub.
+3. Click "Connect".
+
+If the sub has not yet linked their ET-312 box, You will receive a warning message and the box controls will remain disabled.  You can still share audio and video.  The controls will become active as soon as the sub links their ET-312.
+
+#### Sharing Audio and Video
+
+Simply click "SHARE AUDIO/VIDEO" to communicate with the sub via video chat.  You can select input and output devices (e.g. a headset) by clicking on the "gear" :gear: icon in the page header.
+
+#### Scene limits
+
+The sub can disable the ability to change the box power level  and/or limit the maximum output level.  The sub can remove or change these limits in-scene.
+
 ## FAQ
+
+_Coming Soon!_
