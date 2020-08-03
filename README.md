@@ -1,6 +1,6 @@
-# ErosWeb – Remote Control of the ET-312 eStim Box
+# Remote Control of the ET-312 eStim Box
 
-This application delivers software remote control of the [ErosTek ET-312 e-stim power unit](https://erostek.com/products/et312b-digital-power-unit) using modern, web-based technology.  There is nothing to download or install aside from the standard components needed to physically connect the ET-312 to a computer.  ErosWeb is BDSM-informed and aims to facilitate safe, sane, and consensual 1:1 play over the internet.
+ErosWeb delivers software remote control of the [ErosTek ET-312 e-stim power unit](https://erostek.com/products/et312b-digital-power-unit) using modern, web-based technology.  There is nothing to download or install aside from the standard components needed to physically connect the ET-312 to a computer.  ErosWeb is BDSM-informed and aims to facilitate safe, sane, and consensual 1:1 play over the internet.
 
 * [sub page](/sub.html) – start a scene ([how-to](#subs-wishing-to-present-themselves-for-remote-control-over-the-internet))
 * [Dom page](/Dom.html) – remote-control a sub
@@ -41,12 +41,14 @@ Once scene negotiation is complete, the sub can provide a direct link to remote 
 
 #### Notes
 * Microsoft Edge should work, but testing is limited.
-* Running ErosWeb on a phone is not recommended because there is not enough room for the UI.
+* Running ErosWeb on a phone is not recommended because there is not enough screen real-estate for a usable UI.
 
 ## Acknowledgments and Technical Details
 
 Product and company names mentioned herein may be trademarks of their respective owners.
 
-ErosWeb is free open source software provided under the [Apache License](http://www.apache.org/licenses/). The software relies extensively on [Metafetish](https://stpihkal.docs.buttplug.io/hardware/erostek-et312b.html) for documentation of the ET-312 control protocol and the [buttshock project](https://github.com/buttshock) (most recent repo [here](https://github.com/nannook206/buttshock-py)) for practical code examples.
+ErosWeb is free open source software provided under the [Apache License](http://www.apache.org/licenses/LICENSE-2.0). The software relies extensively on [Metafetish](https://stpihkal.docs.buttplug.io/hardware/erostek-et312b.html) for documentation of the ET-312 control protocol and the [buttshock project](https://github.com/buttshock) (most recent repo [here](https://github.com/nannook206/buttshock-py)) for practical code examples.
 
 I credit [smealum](https://www.youtube.com/watch?v=CsQ2VWEfduM) and [JustTryingToPlease](https://www.recon.com/JustTryingToPlease) for the inspiration to dabble in teledildonics.  The design is modeled after eStim scenes performed by experienced players like [nnflyboy]( https://www.recon.com/nnflyboy) and [ncx180](https://www.recon.com/ncx180).
+
+Copyright :copyright: 2020 [boyInSEA](https://www.recon.com/boyinsea) (also on [fetlife](https://fetlife.com/users/763523))

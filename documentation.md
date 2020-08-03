@@ -1,4 +1,4 @@
-# ErosWeb How-To
+# How-To
 
 ## Physically Connecting the ET-312
 The ET-312 power unit connects to a computer via the "Link" port on the ET-312, a RS-232 serial port on the computer, and a special cable.

@@ -153,6 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		if (overlay) overlay.classList.remove("uk-overlay", "uk-overlay-default", "uk-position-cover");
 
 		// Send file to remote sub
+		/*
 		if (STATE.dataConn) {
 			const b = await fetch(UI.localAudio.currentSrc).then(r => r.blob());
 			STATE.dataConn.send({
@@ -166,6 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			});
 			console.log('file sent.');
 		}
+		*/
 	});
 
 	// Configure backup volume control for Safari

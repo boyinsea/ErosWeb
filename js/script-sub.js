@@ -479,7 +479,7 @@ function createPeerConnection(name) {
 
 				// Video Sharing
 				// Normally, the Dom will initiate a call to the sub when
-				// ready to share video.  We only need to make a call when
+				// ready to share video.  We only need to initiate when
 				// the Dom reports that they are NOT sharing video.
 				if (('videoShare' == prop) && !obj && STATE.videoShare) {
 					STATE.mediaConnection = P.call(
@@ -488,10 +488,14 @@ function createPeerConnection(name) {
 				}
 
 				// Estim Audio File
+				/*
 				if ('estimAudioFile' == prop) {
 					console.log('Received estim audio file:');
 					console.dir(obj);
+					// Update UI (icon) when file loaded
 				}
+				// Handle play/pause/seek
+				*/
 			}
 		});
 
