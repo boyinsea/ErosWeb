@@ -15,14 +15,14 @@ Once the serial port hardware is installed and working according to the manufact
 
 #### Connecting to the ET-312 "Link" Port
 
-The special cable used to connect the DB9 serial port on the computer to the 3.5mm stereo "Link" jack on the box is readily available from ErosTek and other sources:
+The special cable used to connect the ET-312 to a computer has a female DB9 serial plug on one end, and a 3.5mm stereo plug on the other.  This cable is readily available from ErosTek and other sources:
 
 * [Relper Lineso DB9Pin Female to DC3.5mm Serial Cable](https://www.amazon.com/gp/product/B06Y98F6D5)
 * [EROSLINK SERIAL CABLE](https://erostek.com/collections/wiring/products/eroslink-serial-cable)
 
 #### E-Stim Audio
 
-ErosWeb enables the Dom to send e-stim audio to the sub.  To feed this audio into the ET-312, connect the computer's headphone port to the ET-312 "Audio" jack using a standard 3.5mm stereo cable.  Click on the "Settings" icon in ErosWeb sub mode to route E-stim Audio Output to the appropriate destination.
+ErosWeb enables the Dom to send e-stim audio to the sub when both Dom and sub are using Google Chrome on a Mac or PC (the needed Web Audio support is limited or unstable on other platforms).  To feed this audio into the ET-312, connect the computer's headphone port to the ET-312 "Audio" jack using a standard 3.5mm stereo cable.  Click on the "Settings" icon :gear: in ErosWeb sub mode to route E-stim Audio Output to the appropriate destination.
 
 ## Starting a Scene, step by step
 
@@ -46,10 +46,10 @@ These instructions pertain to the sub, who is responsible for technology set-up 
 
 "Presenting" refers to making yourself and your ET-312 available for remote control over the Internet.  When ready,
 1. Enter a "scene name" to identify yourself to the remote Dom.
-2. Optionally, enter a PIN.  Any remote Dom will need to know the PIN in order to connect.
+2. Optionally, enter a PIN for added security.  Any remote Dom will need to know the PIN in order to connect.
 3. Click "Present".
 4. ErosWeb will report your Session ID.  Click on "Copy Link" to get a direct link to your session; send this to the remote Dom.  You can also just send the Dom the session ID (and PIN, if any) so They can enter it into the [ErosWeb Dom page](/Dom.html).
-5. You will be notified once the Dom connects.  At that point, **the front-panel controls of your ET-312 will become inactive**, and will instead be controlled by the remote Dom.
+5. You will be notified once the Dom connects.  At that point, **the front-panel controls of your ET-312 will become inactive**, and will instead be under the control of the remote Dom.
 
 #### Sharing Audio and Video
 
@@ -63,14 +63,14 @@ Be sure to click on the "close" icon in the upper-right corner of the Scene Limi
 
 #### Ending the Scene
 
-The scene ends when
+The scene ends when one of the following things happens:
 * the Dom disconnects.
 * you click the "End Scene" button.
-* internet connectivity to the remote Dom is lost.
+* connectivity to the remote Dom is lost.
 
-In any of these cases, the ET-312 power output will ramp down and the box will go into a "paused" mode with no program selected.
+In any of these cases, ET-312 power output will ramp down and the box will go into a "paused" mode with no program selected.
 
-If the Dom disconnected, another Dom can connect and begin a new scene until you press the "End Scene" button.
+If the Dom disconnected, another Dom can connect (or the original Dom can re-connect) and begin a new scene up until you press the "End Scene" button.
 
 #### Unlinking the ET-312
 

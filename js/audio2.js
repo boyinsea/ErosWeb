@@ -6,7 +6,7 @@
 */
 class audioUI {
 
-	constructor() {
+	constructor(setupFunction) {
 
 		for (const method of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
 			if ('constructor' !== method) this[method] = this[method].bind(this);
@@ -18,8 +18,8 @@ class audioUI {
 				console.log(`Resuming audioContext (current state: ${ctx.state})`);
 				ctx.resume();
 			}
+			if (setupFunction) setupFunction();
 		}, { once: true });
-
 	}
 
 	getAudioCtx() {
@@ -62,10 +62,12 @@ class audioUI {
 			option.value = deviceInfo.deviceId;
 			option.text = deviceInfo.label.replace(/\([0-9a-fA-F]{4}:[0-9a-fA-F]{4}\)$/, "");
 
-			if (this.selectList.hasOwnProperty(deviceInfo.kind)) {
+			if (deviceInfo.kind in this.selectList) {
 				if ('' == option.text) option.text = this.DEFAULT_NAME[deviceInfo.kind];
 				this.selectList[deviceInfo.kind].push(option);
 			}
+
+			console.log(`${option.text} = ${option.value}`);
 		}
 	}
 
@@ -106,14 +108,16 @@ class audioUI {
 		// If audio output is not selectable, monitoring is irrelevant because
 		// all audio output goes to the same place.
 		// Hide the checkbox control and its containing label.
+		/*
 		if ((this.selectList.audiooutput.length <= 1) && !player.source) {
 			ckMonitor.parentElement.hidden = true;
 			return;
 		}
+		*/
 
 		ckMonitor.addEventListener('change', () => { this.monitor(player, ckMonitor.checked) });
 
-		if (this.selectList.audiooutput.length > 1) {
+		if (this.sourceSelectionEnabled /* selectList.audiooutput.length > 1 */) {
 
 			monitorOutputSelector.addEventListener('change', async function () {
 				// console.log('Monitor aware of changed MONITOR output selection.');
@@ -156,8 +160,8 @@ class audioUI {
 	// Or, turn off monitoring so the
 	// audio only plays to the streams configured elsewhere.
 	//
-	//	This function should only be called as an event handler configured by
-	//	the addMonitor function.
+	//	This function should only be called during initialization/setup
+	//	or as an event handler configured by the addMonitor function.
 	async monitor(player, enable) {
 
 		console.log(`Monitor: enable = ${enable}.  player.monitorOutput = ${player.monitorOutput}`);
@@ -165,7 +169,7 @@ class audioUI {
 		if (enable) {
 
 			// Special case if output destination is not selectable, e.g. Safari
-			if (!player.monitorOutput) {
+			if (!this.sourceSelectionEnabled) {
 
 				const ctx = this.getAudioCtx();
 				if (!player.monitor) {
@@ -175,7 +179,7 @@ class audioUI {
 					player.monitor.connect(ctx.destination);
 					// player.play();
 				}
-				player.monitor.gain.setValueAtTime(1.0, ctx.currentTime + 0.25);
+				player.monitor.gain.exponentialRampToValueAtTime(1.0, ctx.currentTime + 0.25);
 				return;
 			}
 
@@ -207,7 +211,7 @@ class audioUI {
 		} else {
 
 			// Shortcut if output destination is not selectable
-			if (!player.monitorOutput) {
+			if (!this.sourceSelectionEnabled) {
 				if (player.monitor instanceof GainNode)
 					player.monitor.gain.exponentialRampToValueAtTime(0.01, player.monitor.context.currentTime + 0.25)
 				return;
@@ -218,7 +222,7 @@ class audioUI {
 			// and destroy the monitor player object.
 			if (player.monitor) {
 				player.monitor.pause();
-				player.monitor = null;
+				// player.monitor = null;
 			}
 		}
 	}
@@ -226,6 +230,7 @@ class audioUI {
 	// Configure a <select> element to serve as the input or output selector for a media element,
 	// based on the environment configuration as determined by init.
 	configureSelector(selectorDiv, player, kind = 'audiooutput') {
+
 		if (!this.selectList) throw new Error("audioUI class not initialized.  Call init()");
 
 		// selector could be a div containing a label, etc., as well as the <select> control.
@@ -276,6 +281,8 @@ class audioUI {
 				// If this selector controls a player and it is set up for monitoring,
 				// manipulate the player's output object.  If not, just manipulate the player.
 				if (player) {
+					console.dir(player);
+					console.log(` = ${e.target.value}`);
 					if (player.monitor)
 						await player.output.setSinkId(e.target.value);
 					else
@@ -286,7 +293,7 @@ class audioUI {
 			// If selected device (net of saved values) isn't the default,
 			// switch to it now.
 			if (('default' != defaultDest) && ('default' != selector.value))
-				selector.dispatchEvent(new Event('change'));
+				//selector.dispatchEvent(new Event('change'));
 
 			// Enable UI
 			selectorDiv.hidden = false;
@@ -315,7 +322,7 @@ class audioUI {
 	async reconfigure(e) {
 
 		audioUI.consumeEvent(e);
-
+/*
 		await UIkit.modal.alert(
 			`<div class="uk-modal-body">
 				<b>Please allow access to the microphone</b>
@@ -337,6 +344,7 @@ class audioUI {
 				permissions for the site "<code>${document.location.origin}</code>".
 				</div>`, { stack: true }
 		);
+*/
 		try {
 
 			const selectorDiv = e.target.container;
@@ -347,11 +355,9 @@ class audioUI {
 			if ('videoinput' == kind) constraints.video = true;
 			if (['audiooutput', 'audioinput'].includes(kind)) constraints.audio = true;
 
-			// Calling "getUserMedia" prompts the user to unlock access to more devices
+			// Calling "getUserMedia" prompts the user to unlock access to more devices.
+			// We don't want to use the streams returned by this gUM call again
 			const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-			// We only do this because we never want to use the streams returned by
-			// this gUM call again; this call was only to enumerate devices.
 			if (stream) stream.getTracks().forEach(track => { track.stop(); });
 
 			// Re-initialize; hopefully read a list of devices & re-configure

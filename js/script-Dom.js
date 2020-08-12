@@ -15,9 +15,7 @@ const STATE = {
 	videoShare: null
 };
 
-const UI = {
-	audioUI: new audioUI()
-};
+const UI = {};
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -33,7 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Do final visual fixups and show UI once all elements are loaded and styled into final form.
 	window.addEventListener("load", () => {
-		//logResize();
 		UI.appUi.hidden = false;
 	});
 
@@ -143,6 +140,15 @@ document.addEventListener("DOMContentLoaded", () => {
 		Set up Audio and Video components
 	*/
 	UI.localAudio.volume = 0.1;
+	UI.remoteVideo.autoplay = true;
+	UI.remoteVideo.muted = true; // Enables video to start streaming
+
+	UI.butUnmute.addEventListener('click', (e) => {
+		e.preventDefault();
+		UI.remoteVideo.muted = false;
+		UI.butUnmute.hidden = true;
+	});
+
 	audioUI.configureDropTarget(UI.dropTarget, UI.localAudio);
 
 	// Adjust UI when a new audio file is loaded.
@@ -170,44 +176,63 @@ document.addEventListener("DOMContentLoaded", () => {
 		*/
 	});
 
+	// Web Audio and interaction with the <audio> element is
+	// unstable in Safari right now so we just disable.
+	if ("Apple Computer, Inc." == navigator.vendor) {
+		UI.dropTarget.className = "notSupported";
+		UI.localAudio = null;
+		UI.audioUI = new audioUI();
+	} else {
+
+		UI.ckMonitor.checked = true;
+
+		// Give a one-time warning if playing an audiostim file but
+		// ET-312 isn't connected or set to an audio mode.
+		UI.localAudio.addEventListener('play', function () {
+			let OK = UI.localAudioPlayWarning;
+			if (STATE.ctl) {
+				const m = STATE.ctl.getMode();
+				if (m && m.startsWith("Audio")) OK = true;
+			}
+			if (!OK) {
+				console.dir(STATE.ctl);
+				UIkit.notification(
+					(STATE.ctl) ?
+					'Remember to select an Audio mode!' :
+					"<span class='uk-text-small'>Use the \"Monitor\" checkbox to preview audio locally.  Audio will be sent to remote sub's ET-312 box once connected.</span>", { pos: 'bottom-center', status: 'primary' });
+				UI.localAudioPlayWarning = true;
+			}
+		});
+
+		UI.audioUI = new audioUI(() => {
+			// Final setup steps to be run upon first user interaction with page.
+			UI.audioUI.configurePlayer(UI.localAudio);
+			UI.audioUI.addMonitor(UI.localAudio, UI.ckMonitor, UI.localAudioDest);
+			UI.audioUI.monitor(UI.localAudio, true);
+		});
+	}
 	// Configure backup volume control for Safari
 	// (default rendering doesn't work well in our layout)
-	if (("Apple Computer, Inc." == navigator.vendor) && UI.backupVolume) {
+
+	/*&& UI.backupVolume) {
 		UI.backupVolume.hidden = false;
 		UI.backupVolume.value = UI.localAudio.volume;
 		UI.backupVolume.addEventListener("input", (e) => {
 			console.log(`${UI.backupVolume.value} .. ${UI.localAudio.volume}`);
-			UI.localAudio.volume = UI.backupVolume.value;
+//			UI.localAudio.volume = UI.backupVolume.value;
+//			if (player.monitor instanceof GainNode)
+				UI.localAudio.monitor.gain.exponentialRampToValueAtTime(UI.backupVolume.value, UI.localAudio.monitor.context.currentTime + 0.1)
 		});
 		UI.localAudio.addEventListener('volumechange', (event) => {
 			console.log(`Volume ${UI.localAudio.volume}`);
 		});
 	}
-
-	// Give a one-time warning if playing an audiostim file but
-	// ET-312 isn't connected or set to an audio mode.
-	UI.localAudio.addEventListener('play', function () {
-		let OK = UI.localAudioPlayWarning;
-		if (STATE.ctl) {
-			const m = STATE.ctl.getMode();
-			if (m && m.startsWith("Audio")) OK = true;
-		}
-		if (!OK && !UI.ckMonitor.checked) {
-			console.dir(STATE.ctl);
-			UIkit.notification(
-				(STATE.ctl) ?
-				'Remember to select an Audio mode!' :
-				"<span class='uk-text-small'>Use the \"Monitor\" checkbox to preview audio locally.  Audio will be sent to remote sub's ET-312 box once connected.</span>", { pos: 'bottom-center', status: 'primary' });
-			UI.localAudioPlayWarning = true;
-		}
-	});
+*/
 
 	UI.audioUI.init().then(() => {
 		UI.audioUI.configureSelector(UI.localAudioDest, UI.localVideo);
 		UI.audioUI.configureSelector(UI.cameraInput, null, 'videoinput');
 		UI.audioUI.configureSelector(UI.microphoneInput, null, 'audioinput');
-		UI.audioUI.configurePlayer(UI.localAudio);
-		UI.audioUI.addMonitor(UI.localAudio, UI.ckMonitor, UI.localAudioDest);
 	});
 
 
@@ -371,7 +396,7 @@ function createPeerConnection(destId) {
 	});
 
 	P.on('open', () => {
-		const dataConn = P.connect(destId, {
+		const dataConn = P.connect(destId.replace('-', ''), {
 			metadata: {
 				PIN: UI.inputPIN.value,
 				sceneName: UI.inputName.value,
@@ -388,34 +413,51 @@ function createPeerConnection(destId) {
 				if ('welcome' == prop) {
 					if (true === obj) {
 						// Display success message if the sub's ET-312 is linked.
-						// If not, that situation results in a more detailed modal dialog displayed below.
+						// If not, a more detailed modal dialog will be displayed below.
 						if (data.info) UIkit.notification('Connected!', { pos: 'top-left', status: 'success' });
 
 						STATE.dataConn = dataConn;
 						toggleUIConnected(true);
-						STATE.dataConn.send({
-							videoShare: Boolean(STATE.videoShare)
-						});
 
-						// Create MediaConnection for estim audio
-						STATE.estimAudioConnection = P.call(
-							destId,
-							UI.localAudio.stream, {
-								metadata: { estimAudio: true },
-								sdpTransform: (sdp) => {
-									const sdp2 = webRTChelper.sdpAudio(sdp);
-									console.log(sdp2);
-									return sdp2;
+						// Create MediaConnection for estim audio if enabled
+						if (UI.localAudio) {
+							STATE.estimAudioConnection = P.call(
+								dataConn.peer,
+								UI.localAudio.stream, {
+									metadata: { estimAudio: true },
+									sdpTransform: (sdp) => {
+										const sdp2 = webRTChelper.sdpAudio(sdp);
+										return sdp2;
+									}
 								}
-							}
-						);
+							);
+							console.log('estimAudioConnection set up');
+						}
 
-						// if we are currently sharing audio/video, call the sub
-						if (STATE.videoShare) gotConnection(P.call(destId, STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }));
+						// if we have audio/video to share, call the sub
+						if (STATE.videoShare) {
+							console.log('Sharing video; calling sub');
+							const videoConnection = P.call(
+								dataConn.peer,
+								STATE.videoShare); //,
+							// 	{
+							// 		sdpTransform: (sdp) => {
+							// 			console.log(sdp);
+							// 			console.log('--- # # # ---');
+							// 			const sdp2 = webRTChelper.sdpVoice(sdp);
+							// 			console.log(sdp2);
+							// 			return sdp2;
+							// 		}
+							// 	}
+							// );
+							setupConnection(videoConnection);
+						} else {
+							STATE.dataConn.send({ videoShare: false });
+						}
 
 					} else if (false === obj) {
 						// welcome: false means the remote sub wants to close the connection.
-						if (state.dataConn) state.dataConn.close();
+						if (STATE.dataConn) STATE.dataConn.close();
 					} else {
 						// welcome: [object] means Connection refused; object contains error information.
 						// This will be followed by a "close" event.
@@ -427,12 +469,11 @@ function createPeerConnection(destId) {
 				// sub's scene name, for UI
 				if ('sceneName' == prop) UI.subName.textContent = obj;
 
-				// Information about the sub's ET-312 box.  false == no box connected
+				// Information about the sub's ET-312 box.  false == no box connected or box has gone away
 				if ('info' == prop) {
 					if (obj) {
 						if (!STATE.ctl) STATE.ctl = new ET312Remote(dataConn);
 						STATE.ctl.info(obj);
-						refreshUI(obj);
 					} else {
 						STATE.ctl = null;
 
@@ -443,6 +484,7 @@ function createPeerConnection(destId) {
 							"Remote control of the sub's ET-312 box is disabled.", { pos: 'top-left', status: 'warning' }
 						);
 					}
+					refreshUI(obj);
 				}
 
 				// Information about scene limits
@@ -459,24 +501,39 @@ function createPeerConnection(destId) {
 					}
 				}
 
-				// Sub has changed video sharing state
-				if ('videoShare' == prop) {
+				// Sub has changed video sharing state; this property should
+				// only be sent when a media connection is already in place but
+				// the sub wants to add video; this requires a renegotiation of
+				// the MediaConnection.  It should NOT be sent as part of a
+				// Welcome message.
+				if (('videoShare' == prop) && !('welcome' in data)) {
+
+					console.log(`sub videoShare: ${obj}`);
 
 					// Sub is now sharing too.
 					if (obj && STATE.videoShare) {
 
 						// First close any existing connection
-						if (STATE.mediaConnection) STATE.mediaConnection.close();
+						if (STATE.mediaConnection) {
+							UI.remoteVideo.pause();
+							UI.remoteVideo.srcObject = null;
+							STATE.mediaConnection.close();
+						}
 
 						// Call back so sub can reply with their video stream.
-						gotConnection(P.call(dataConn.peer, STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }));
+						// TODO: Consolidate code; this is the same as reply to 'welcome'
+						console.log('Calling sub');
+						const videoConnection = P.call(
+							dataConn.peer,
+							STATE.videoShare);
+						setupConnection(videoConnection);
 					}
 
 					// Sub has stopped sharing video; adjust our UI.
 					else if (!obj) {
 						UI.remoteVideo.pause();
-						UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
 						UI.remoteVideo.srcObject = null;
+						UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
 					}
 				}
 			}
@@ -508,20 +565,23 @@ function createPeerConnection(destId) {
 	});
 
 	P.on('error', (err) => {
-		STATE.peer = null; // Drop reference to the peer object so we can try again.
-		if (err.message.startsWith('Could not connect to peer '))
-			UI.inputSId.classList.toggle('uk-form-danger', true);
-		showAlert('connectionFailed', err).then(() => {
+		console.dir(err);
+		console.dir(P);
+		if ("peer-unavailable" == err.type) UI.inputSId.classList.toggle('uk-form-danger', true);
+		if (STATE.dataConn) {
+			STATE.peer = null; // Drop reference to the peer object so we can try again.
 			toggleUIConnected(false);
 			UI.butConnect.disabled = false;
-		});
+			showAlert('connectionFailed', err);
+			STATE.dataConn = null;
+		}
 	});
 
 	P.on('call', (mediaConnection) => {
 		// This happens when the sub attempts to connect with audio/video
-		// console.log("Received a call; answering...");
+		console.log("Received a call; answering...");
 		mediaConnection.answer(STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice });
-		gotConnection(mediaConnection);
+		setupConnection(mediaConnection);
 	});
 
 	return P;
@@ -533,19 +593,20 @@ function createPeerConnection(destId) {
 */
 
 // Store and set up event handlers for a MediaConnection
-function gotConnection(conn) {
+function setupConnection(conn) {
 
 	STATE.mediaConnection = conn;
 
 	STATE.mediaConnection.on('stream', (stream) => {
-		// console.log(`Got stream: ${stream}`)
+		console.log(`Got stream: ${stream}`)
+		if (UI.remoteVideo.srcObject && (UI.remoteVideo.srcObject.id == stream.id)) return;
 		UI.remoteVideo.nextElementSibling.hidden = true; // Hide overlay
 		UI.remoteVideo.srcObject = stream;
-		UI.remoteVideo.autoplay = true;
+		UI.butUnmute.hidden = !UI.remoteVideo.muted;
 	});
 
 	// This happens when the media connection is closed, e.g. by the
-	// remote dom ending the call.
+	// remote sub ending the call.
 	STATE.mediaConnection.on('close', () => {
 		// console.log('Media connection closing...');
 		UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
@@ -584,7 +645,7 @@ async function clickShare() {
 			if (STATE.dataConn) {
 				// Close any existing connection
 				if (STATE.mediaConnection) STATE.mediaConnection.close();
-				gotConnection(STATE.peer.call(UI.inputSId.value, STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }));
+				setupConnection(STATE.peer.call(STATE.dataConn.peer, STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }));
 			}
 		} catch (e) {
 			if (
@@ -604,10 +665,6 @@ async function clickShare() {
 		STATE.videoShare.getTracks().forEach(track => { track.stop(); });
 		STATE.videoShare = null;
 		UI.localVideo.nextElementSibling.hidden = false;
-
-		if (STATE.mediaConnection) STATE.mediaConnection.close();
-		STATE.mediaConnection = null;
-
 		UI.butShare.textContent = 'Share Audio/Video';
 	}
 }

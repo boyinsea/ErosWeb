@@ -134,10 +134,6 @@ document.addEventListener("DOMContentLoaded", () => {
 		if (STATE.dataConn) STATE.dataConn.send({ limits: getLimits() });
 	});
 
-	// Finalize audio component setup
-	UI.estimAudio = new Audio(); // Renderer only; not present in UI.
-	UI.audioUI = new audioUI();
-
 	// Restore page defaults
 	UI.inputName.value = localStorage.getItem('sceneName');
 	let limitMaxLevel = Number(localStorage.getItem('limitMaxLevel'));
@@ -145,12 +141,15 @@ document.addEventListener("DOMContentLoaded", () => {
 	UI.limitMaxLevel.setValue(limitMaxLevel);
 	UI.limitPowerLevel.checked = ("true" === localStorage.getItem('limitPowerLevel'));
 
-	// Initialize application state and audio components
+
+	// Finalize audio component setup; initialize application state
+	UI.estimAudio = new Audio(); // Renderer only; not present in UI.
+	UI.audioUI = new audioUI();
 	toggleState(false, false)
 		.then(() => UI.audioUI.init())
 		.then(() => {
 			UI.audioUI.configureSelector(UI.estimAudioDest, UI.estimAudio);
-			UI.audioUI.configureSelector(UI.localAudioDest, UI.localVideo);
+			UI.audioUI.configureSelector(UI.localAudioDest, UI.remoteVideo);
 			UI.audioUI.configureSelector(UI.cameraInput, null, 'videoinput');
 			UI.audioUI.configureSelector(UI.microphoneInput, null, 'audioinput');
 		});
@@ -248,8 +247,8 @@ async function toggleState(conn, box) {
 			UIkit.notification(
 				`<b>${UI.domName.textContent}</b> has taken control of the ET-312.`, { pos: 'top-left', status: 'warning' }
 			);
-
 			STATE.dataConn.send({ info: info });
+
 			if (!STATE.heartbeat) {
 				// Query current box status & update Dom every 5 seconds.
 				// (Skip the update if less than 1 second has elapsed since status
@@ -285,23 +284,22 @@ async function toggleState(conn, box) {
 		}
 
 		// Tear down any existing connections
-		if (STATE.dataConn) {
-
-			// Notify remote peer that connection is ending.
-
-
-			STATE.dataConn.close();
-			STATE.dataConn = null;
-		}
 		if (STATE.mediaConnection) {
 			STATE.mediaConnection.close();
 			STATE.mediaConnection = null;
 		}
+
+		if (STATE.dataConn) {
+			// Notify remote peer that connection is ending.
+			STATE.dataConn.send({ welcome: false });
+			STATE.dataConn.close();
+			STATE.dataConn = null;
+		}
 	}
 
 	// UI configuration net of any changes
-	box = Boolean(STATE.et312);
-	conn = Boolean(STATE.dataConn);
+	box = Boolean(box); //STATE.et312);
+	conn = Boolean(conn); //STATE.dataConn);
 	UI.controlsOnline.classList.toggle("disabled", !box);
 	UI.pnlSession.classList.toggle("connected", conn);
 	UI.iconBoxLink.classList.toggle("connected", box);
@@ -371,7 +369,7 @@ function toggleUIPresent(present) {
 
 	if (present) {
 		UI.inputName.classList.remove('uk-form-danger');
-		UI.sessionId.textContent = STATE.peer.id;
+		UI.sessionId.textContent = idFormat(STATE.peer.id);
 		UI.pnlSessionId.classList.replace('uk-invisible', 'uk-animation-scale-up');
 	} else {
 		UI.sessionId.textContent = '';
@@ -387,13 +385,13 @@ function createPeerConnection(name) {
 	// https://elements.heroku.com/buttons/peers/peerjs-server
 
 	// Generate a Session ID based on a hash of the scene name & current time.
-	let hash = Date.now(), //0,
+	let hash = Date.now(),
 		i = 0;
 	while (i < name.length) {
 		hash = ((hash << 5) - hash) + name.charCodeAt(i++);
 		hash |= 0;
 	}
-	const sessionId = idFormat( /*Date.now().toString(36) +*/ Math.abs(hash).toString(36));
+	let sessionId = Math.abs(hash).toString(36);
 
 	UI.log.textContent += `Preparing to go online...\n`;
 	const P = new Peer(sessionId, {
@@ -446,8 +444,6 @@ function createPeerConnection(name) {
 			UI.log.textContent += `${sceneName} has connected.\n`;
 			UIkit.notification(`<b>${sceneName}</b> has connected.`, { pos: 'top-left', status: 'success' });
 
-			toggleState(true, STATE.ctl); // Toggle app into "connected" mode
-
 			// If ET-312 box is connected, get current status information
 			let info = false;
 			if (STATE.ctl) info = await STATE.ctl.getInfo(true);
@@ -456,13 +452,13 @@ function createPeerConnection(name) {
 			dataConnection.send({
 				welcome: true,
 				sceneName: UI.inputName.value,
-				videoShare: Boolean(STATE.videoShare),
+				// videoShare: Boolean(STATE.videoShare),
 				info: info,
 				limits: getLimits()
 			});
 
+			toggleState(true, STATE.ctl); // Toggle app into "connected" mode
 			STATE.dataConn = dataConnection; // Save data connection object
-
 		});
 
 		// This event occurs every time a data message is received
@@ -480,7 +476,9 @@ function createPeerConnection(name) {
 				// Video Sharing
 				// Normally, the Dom will initiate a call to the sub when
 				// ready to share video.  We only need to initiate when
-				// the Dom reports that they are NOT sharing video.
+				// the Dom reports that they are NOT sharing video in response
+				// to our "welcome" message (instead of calling).
+				// If we are NOT presently sharing video, the message is ignored.
 				if (('videoShare' == prop) && !obj && STATE.videoShare) {
 					STATE.mediaConnection = P.call(
 						STATE.dataConn.peer,
@@ -522,7 +520,9 @@ function createPeerConnection(name) {
 	// This happens when Dom calls us with either audio/video to share or eStim audio
 	P.on('call', (mediaConnection) => {
 
-		if (mediaConnection.metadata && (true == mediaConnection.metadata.estimAudio)) {
+		console.dir(mediaConnection);
+
+		if (mediaConnection.metadata && mediaConnection.metadata.estimAudio) {
 
 			mediaConnection.answer(null, { sdpTransform: webRTChelper.sdpAudio });
 			STATE.estimAudioConnection = mediaConnection;
@@ -549,18 +549,53 @@ function createPeerConnection(name) {
 			STATE.mediaConnection = mediaConnection;
 
 			// This happens when remote audio/video arrives from the Dom
+			// There's an issue with peerJS where the same stream may be
+			// sent twice; https://github.com/peers/peerjs/issues/609
 			STATE.mediaConnection.on('stream', (stream) => {
+				console.log('Got mediaConnection stream:');
+				console.dir(stream);
+				if (UI.remoteVideo.srcObject && (UI.remoteVideo.srcObject.id == stream.id)) return;
 				UI.remoteVideo.nextElementSibling.hidden = true; // Hide overlay
 				UI.remoteVideo.srcObject = stream;
-				UI.remoteVideo.autoplay = true;
+
+				// stream.getTracks()[0].addEventListener('ended', (e) => {
+				// 	console.log('mediaConnection track ended:');
+				// 	console.dir(e);
+				// 	UI.remoteVideo.pause();
+				// 	UI.remoteVideo.srcObject = null;
+				// });
+				//
+				// stream.getTracks()
+				// .filter(t => "video" == t.kind)
+				// .forEach(t => t.addEventListener('muted', (e) => {
+				// 	console.log('mediaConnection track muted:');
+				// 	console.dir(e);
+				// }));
+
+				console.log(`Remote video sinkId is: ${UI.remoteVideo.sinkId}`);
+
+				const i = UI.localAudioDest.getValue();
+				console.log(`Destination for remote audio is: ${i}`);
+
+				// Setting setSinkId can be a little unstable...
+				UI.remoteVideo.play()
+					//.then(UI.remoteVideo.setSinkId('default'))
+					.then(UI.remoteVideo.setSinkId(i));
 			});
 
 			// This happens when the media connection is closed, e.g. by the
-			// remote dom ending the call.
+			// remote dom ending the call.  The connection does NOT close if
+			// the Dom has simply stopped sharing audio/video but the sub
+			// has not (i.e. still sending audio/video to the Dom).
 			STATE.mediaConnection.on('close', () => {
-				UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
-				UI.remoteVideo.srcObject = null;
 				STATE.mediaConnection = null;
+				UI.remoteVideo.pause();
+				UI.remoteVideo.srcObject = null;
+				UI.remoteVideo.setSinkId('')
+					.then(() => {
+						UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
+						console.log('mediaConnection closed.');
+					});
 			});
 		}
 	});
@@ -626,6 +661,7 @@ async function clickShare() {
 	};
 
 	if (!STATE.videoShare) {
+		// Not sharing --> Sharing
 		try {
 			STATE.videoShare = await navigator.mediaDevices.getUserMedia(constraints);
 			UI.localVideo.nextElementSibling.hidden = true;
@@ -634,13 +670,17 @@ async function clickShare() {
 			UI.localVideo.play();
 			UI.butShare.textContent = 'Stop Sharing';
 
-			// If remote peer exists but no media connection yet, call
+			// Send video if remote peer exists.
 			if (STATE.dataConn) {
 				if (STATE.mediaConnection) {
-					// Tell remote that we have video available; remote will
-					// close connection and call back.
-					if (STATE.dataConn) STATE.dataConn.send({ videoShare: true });
+					// Connection alrady in place; close it and tell
+					// Dom that we have video available; Dom will
+					// call back.
+					// It is hard to add a stream to a MediaConnection in PeerJS
+					STATE.mediaConnection.close();
+					STATE.dataConn.send({ videoShare: true });
 				} else {
+					// No connection yet; initiate call.
 					STATE.mediaConnection = STATE.peer.call(
 						STATE.dataConn.peer,
 						STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }
@@ -658,6 +698,8 @@ async function clickShare() {
 			} else throw e;
 		}
 	} else {
+
+		// Sharing -> not sharing
 		UI.localVideo.pause();
 		STATE.videoShare.getTracks().forEach(track => { track.stop(); });
 		UI.localVideo.srcObject = null;
@@ -665,7 +707,8 @@ async function clickShare() {
 		UI.localVideo.nextElementSibling.hidden = false;
 		UI.butShare.textContent = 'Share Audio / Video';
 
-		if (STATE.mediaConnection) {
+		// Close connection unless Dom is sharing
+		if (STATE.mediaConnection && !STATE.mediaConnection.remoteStream) {
 			STATE.mediaConnection.close();
 			STATE.mediaConnection = null;
 		}

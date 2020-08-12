@@ -13,7 +13,8 @@ class webRTChelper {
 		// safari: a=fmtp:111 minptime=10;useinbandfec=1
 
 		//sdp = sdp.replace('useinbandfec=1', 'useinbandfec=1; stereo=1; maxaveragebitrate=510000');
-		return webRTChelper.preferOpus(sdp, 'voice');
+		//return webRTChelper.preferOpus(sdp, 'voice');
+		return sdp;
 	}
 
 	static sdpAudio(sdp) {
@@ -34,7 +35,7 @@ class webRTChelper {
 
 		for (let i = 0; i < sdpLines.length; i++) {
 			if (sdpLines[i].search('opus/48000') !== -1) {
-				var opusPayload = this.extractSdp(sdpLines[i], /:(\d+) opus\/48000/i);
+				const opusPayload = this.extractSdp(sdpLines[i], /:(\d+) opus\/48000/i);
 				if (opusPayload)
 					sdpLines[mLineIndex] = this.setDefaultCodec(sdpLines[mLineIndex], opusPayload);
 				break;

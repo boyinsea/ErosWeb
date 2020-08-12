@@ -1,10 +1,24 @@
 @font-face {
-  font-family: "Roboto";
-  src: url("./../fonts/Roboto-Medium.ttf") format("ttf");
+	font-family: "Roboto";
+	src: url("./../fonts/Roboto-Medium.ttf") format("ttf");
 }
 
+/*	Safari hacks...
+...<audio> element volume UI */
+div#dropTarget {
+	overflow: inherit;
+}
+
+/* Disable audio UI altogether...unstable */
+div#dropTarget.notSupported {
+	display: none;
+}
+
+/*	*/
 [uk-form-custom]>button {
 	font-size: 75%;
+	padding-left: 15px;
+	padding-right: 15px;
 }
 
 audio,
@@ -14,22 +28,24 @@ audio:focus {
 }
 
 audio::-webkit-media-controls-volume-slider-container {
-    display: none !important;
+	display: none !important;
 }
 
 button[uk-icon].uk-button-small {
 	color: rgb(144, 144, 144);
 	padding-left: 15px;
+	border: none;
 }
 
-div#pnlSession {
+div#pnlSession:not(.connected) {
 	visibility: hidden;
 }
 
+/*
 div#pnlSession.connected {
 	visibility: inherit;
 }
-
+*/
 div.alert {
 	display: none;
 }
@@ -40,7 +56,9 @@ span:not(.connected) svg.uk-svg {
 }
 
 span.uk-icon.connected[uk-icon="bolt"] {
-	color: /*blue;*/ #39f;
+	color:
+		/*blue;*/
+		#39f;
 }
 
 span.uk-icon.connected[uk-icon="link"] {
@@ -49,7 +67,9 @@ span.uk-icon.connected[uk-icon="link"] {
 
 /* Speaker icon in Sub mode */
 span.connected svg.uk-svg {
-	color: /*#39f;*/ purple;
+	color:
+		/*#39f;*/
+		purple;
 }
 
 div.gotFile {
@@ -78,6 +98,13 @@ div.preCover {
 
 fieldset label {
 	padding-top: 2px;
+}
+
+form#controls {
+	user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
 }
 
 form#controls div.disabled {
@@ -145,7 +172,6 @@ div:not(.disabled) .interactive span.uk-label:not([selected]) {
 	cursor: pointer;
 }
 
-
 .sub .uk-logo {
 	color: #e70039 !important;
 }
@@ -172,9 +198,4 @@ div:not(.disabled) .interactive span.uk-label:not([selected]) {
 
 .uk-overlay span[uk-icon] {
 	opacity: 0.25;
-}
-
-/*	Safari hack for <audio> element volume UI */
-div#dropTarget {
-	overflow: inherit;
 }

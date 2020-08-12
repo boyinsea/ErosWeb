@@ -46,12 +46,10 @@
 				<input id="inputPIN" class="uk-input" type="number" min="0" max="9999" maxlength="4" placeholder="PIN">
 				<button id="butConnect" type="button" class="uk-button uk-button-default">Connect</button>
 				<button id="butShare" type="button" class="uk-button uk-button-default">Share Audio/Video</button>
-				<!-- <button id="butStatus" type="button" class="uk-button" disabled>Status</button> -->
 			</div>
 
 			<div class="uk-width-1-6 uk-box-shadow-medium uk-margin-small uk-position-small uk-position-top-right uk-position-z-index">
 				<video id="localVideo" autoplay muted="true">
-					Sorry, your browser doesn't support embedded videos.
 				</video>
 				<div class="uk-overlay uk-overlay-default uk-position-center uk-padding-remove">
 					<span class="uk-icon-link" uk-icon="icon: video-camera; ratio: 2"></span>
@@ -169,7 +167,7 @@
 							<span uk-icon="icon: pull"></span>
 							<span class="uk-text-middle">Drop <span class="gotFile">an audiostim file here</span> or </span>
 							<div uk-form-custom>
-								<input type="file" accept="audio/*">
+								<input type="file" accept="audio/mp3,audio/aac,audio/m4a,audio/wav,audio/*">
 								<span class="uk-link uk-margin-small-right uk-text-middle">select<span class="gotFile"> one</span></span>
 							</div>
 						</div>
@@ -183,6 +181,8 @@
 						<span id="iconLink" class="uk-icon" uk-icon="bolt" uk-tooltip="Indicates that You have control of the remote sub's ET-312."></span>
 						<span id="verb" class="uk-text-middle">Connected to</span>
 						<span id="subName" class="uk-text-middle uk-text-bold uk-text-secondary"></span>
+						<a id="butUnmute" href="" class="uk-margin-small-left uk-text-middle uk-text-small" hidden="true">Click to Un-mute</a>
+
 					</div>
 
 					<div class="uk-inline uk-width-1-1 uk-box-shadow-medium">
@@ -196,15 +196,10 @@
 
 					<!-- <pre id="log" class="uk-overflow-auto"></pre> -->
 
-					<!-- <div id="chatUI" class="uk-margin-small uk-invisible">
-						<input class="uk-input uk-width-4-5" type="text" placeholder="Message">
-						<button id="butSendMessage" type="button" class="uk-button uk-button-small uk-width-1-6">Send</button> -->
 				</div>
 
 			</div>
 		</div>
-	</div>
-
 	</div>
 
 	<!-- Slide-in area for adjusting audio and video settings -->
