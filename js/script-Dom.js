@@ -178,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Web Audio and interaction with the <audio> element is
 	// unstable in Safari right now so we just disable.
-	if ("Apple Computer, Inc." == navigator.vendor) {
+	if ("Apple Computer, Inc." == navigator.vendor) { // "Google Inc."
 		UI.dropTarget.className = "notSupported";
 		UI.localAudio = null;
 		UI.audioUI = new audioUI();

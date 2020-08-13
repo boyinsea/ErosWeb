@@ -1,4 +1,4 @@
-# How-To
+# How-To Guide
 
 ## Physically Connecting the ET-312
 The ET-312 power unit connects to a computer via the "Link" port on the ET-312, a RS-232 serial port on the computer, and a special cable.
@@ -22,7 +22,7 @@ The special cable used to connect the ET-312 to a computer has a female DB9 seri
 
 #### E-Stim Audio
 
-ErosWeb enables the Dom to send e-stim audio to the sub when both Dom and sub are using Google Chrome on a Mac or PC (the needed Web Audio support is limited or unstable on other platforms).  To feed this audio into the ET-312, connect the computer's headphone port to the ET-312 "Audio" jack using a standard 3.5mm stereo cable.  Click on the "Settings" icon :gear: in ErosWeb sub mode to route E-stim Audio Output to the appropriate destination.
+ErosWeb enables the Dom to send e-stim audio to the sub when both Dom and sub are using Google Chrome on a Mac or PC (the needed Web Audio support is limited or unstable on other platforms).  To feed this audio into the ET-312, connect the computer's headphone port to the ET-312 "Audio" jack using a standard 3.5mm stereo cable.  Click on the "Settings" icon &#x2699; in ErosWeb sub mode to route E-stim Audio Output to the appropriate destination.
 
 ## Starting a Scene, step by step
 
@@ -38,7 +38,7 @@ These instructions pertain to the sub, who is responsible for technology set-up 
 3. Using Google Chrome, go to the [ErosWeb sub page](/sub.html).
 4. Turn **on** the ET-312 box.
 5. Click "Link ET-312" on the ErosWeb page.
-6. Choose the serial port that the ET-312 is connected to. This may require some trial and error.  On MacOS, the correct port is usually indicated by `(tty.usbserial)`.
+6. Choose the serial port that the ET-312 is connected to. This may require some trial and error.  On MacOS, the correct port is usually indicated by `(tty.usbserial)`. ![Choose Serial Port](/assets/choose-serial-port.png)
 7. Once connected, ErosWeb will report "ET-312 linked and ready" and display the current power level of the box (Low, Normal, or High).
 8. You may still use the front panel controls to adjust the ET-312 output levels and mode.  You can control the overall power level of the box via the ErosWeb application.
 
@@ -53,11 +53,11 @@ These instructions pertain to the sub, who is responsible for technology set-up 
 
 #### Sharing Audio and Video
 
-Simply click "SHARE AUDIO/VIDEO" to communicate with the Dom via video chat.  You can select input and output devices (e.g. a headset) by clicking on the "gear" :gear: icon in the page header.
+Simply click "SHARE AUDIO/VIDEO" to communicate with the Dom via video chat.  You can select input and output devices (e.g. a headset) by clicking on the Settings &#x2699; icon in the page header.
 
 #### Scene Limits
 
-You can set limits for the scene – including maximum power output – using the :no_entry_sign: icon in the page header.
+You can set limits for the scene – including maximum power output – using the &#x1f6ab; icon in the page header.
 
 Be sure to click on the "close" icon in the upper-right corner of the Scene Limits sidebar to save any changes.
 
@@ -74,7 +74,7 @@ If the Dom disconnected, another Dom can connect (or the original Dom can re-con
 
 #### Unlinking the ET-312
 
-:warning: You must "un-link" the ET-312 from ErosWeb when you are done with your scene.  This resets the connection to the box so that you can subsequently link to it again.  If you navigate away from the ErosWeb page without un-linking, you will need to turn the ET-312 off and then on again to reset it before you can link to it again.
+&#9888;&#65039; You must "un-link" the ET-312 from ErosWeb when you are done with your scene.  This resets the connection to the box so that you can subsequently link to it again.  If you navigate away from the ErosWeb page without un-linking, you will need to turn the ET-312 off and then on again to reset it before you can link to it again.
 
 ## Controlling a Remote sub
 
@@ -86,7 +86,7 @@ If the sub has not yet linked their ET-312 box, You will receive a warning messa
 
 #### Sharing Audio and Video
 
-Simply click "SHARE AUDIO/VIDEO" to communicate with the sub via video chat.  You can select input and output devices (e.g. a headset) by clicking on the "gear" :gear: icon in the page header.
+Simply click "SHARE AUDIO/VIDEO" to communicate with the sub via video chat.  You can select input and output devices (e.g. a headset) by clicking on the "gear" &#x2699; icon in the page header.
 
 #### Scene limits
 

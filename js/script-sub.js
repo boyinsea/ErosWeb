@@ -333,7 +333,7 @@ async function clickPresent() {
 		// Make sure we have a scene name so the remote user knows who they're connecting to
 		if ("" == UI.inputName.value) {
 			UI.inputName.classList.add('uk-form-danger');
-			UIkit.notification('Enter a Name to identify yourself to the remote user.', 'danger');
+			UIkit.notification('Enter a Name to identify yourself to the remote Dom.', 'danger');
 			return;
 		}
 

@@ -14,7 +14,7 @@ Features include:
 ## Getting Started
 An ErosWeb scene is potentially very much like an in-person scene involving the ET-312.  ErosWeb does not change the dynamics of scene negotiaton or play partner selection and vetting.  The Dom has full control of the box and can change modes and output levels, as well as feed audio into the box.  However, the sub (who is physically connected to the box being controlled) is ultimately responsible for setting up the scene by connecting an ET-312 to their computer, applying/inserting electrodes, and finally "presenting" themselves for control by a remote Dom via a web page.
 
-Once Dom and sub are ready to play, proceed as follows, or consult the [detailed ErosWeb Guide](/ErosWeb/documentation.html).
+Once Dom and sub are ready to play, proceed as follows, or consult the [How-To Guide](/ErosWeb/documentation.html).
 
 [chrome]: https://www.google.com/chrome/
 
@@ -51,4 +51,4 @@ ErosWeb is free open source software provided under the [Apache License](http://
 
 I credit [smealum](https://www.youtube.com/watch?v=CsQ2VWEfduM) and [JustTryingToPlease](https://www.recon.com/JustTryingToPlease) for inspiring me to dabble in teledildonics.  The ErosWeb feature set is modeled after eStim scenes performed by experienced players like [nnflyboy]( https://www.recon.com/nnflyboy) and [ncx180](https://www.recon.com/ncx180).
 
-Copyright :copyright: 2020 [boyInSEA](https://www.recon.com/boyinsea) (also on [fetlife](https://fetlife.com/users/763523))
+Copyright &#169; 2020 [boyInSEA](https://www.recon.com/boyinsea) (also on [fetlife](https://fetlife.com/users/763523))
