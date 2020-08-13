@@ -2,7 +2,7 @@
 
 ErosWeb delivers software remote control of the [ErosTek ET-312 e-stim power unit](https://erostek.com/products/et312b-digital-power-unit) using modern, web-based technology.  There is no software to download or install; Mac, Windows PCs, and iPad are supported.  ErosWeb is BDSM-informed and aims to serve the large installed base of ET-312 owners by enabling safe, sane, and consensual 1:1 play over the internet.  Or, put more simply, why let the E2B people have all the fun?
 
-* [sub page](/sub.html) – start a scene ([how-to](#subs-wishing-to-present-themselves-for-remote-control-over-the-internet))
+* [sub page](/sub.html) – start a scene ([how-to](#subs))
 * [Dom page](/Dom.html) – remote-control a sub
 
 Features include:
@@ -14,7 +14,7 @@ Features include:
 ## Getting Started
 An ErosWeb scene is potentially very much like an in-person scene involving the ET-312.  ErosWeb does not change the dynamics of scene negotiaton or play partner selection and vetting.  The Dom has full control of the box and can change modes and output levels, as well as feed audio into the box.  However, the sub (who is physically connected to the box being controlled) is ultimately responsible for setting up the scene by connecting an ET-312 to their computer, applying/inserting electrodes, and finally "presenting" themselves for control by a remote Dom via a web page.
 
-Once Dom and sub are ready to play, proceed as follows, or consult the [detailed ErosWeb Guide](/documentation.html).
+Once Dom and sub are ready to play, proceed as follows, or consult the [detailed ErosWeb Guide](/ErosWeb/documentation.html).
 
 [chrome]: https://www.google.com/chrome/
 
@@ -24,7 +24,7 @@ wishing to present themselves for remote control over the internet. (Yes, the su
 **Requirements:**
 - ET-312 Box
 - Mac or Windows PC (tablets/iPad are not supported for subs)
-- Appropriate hardware to connect the ET-312 to the computer.  See the [Connectivity Tips](/documentation.html#physically-connecting-the-et-312).
+- Appropriate hardware to connect the ET-312 to the computer.  See the [Connectivity Tips](/ErosWeb/documentation.html#physically-connecting-the-et-312).
 - Latest version of [Google Chrome][chrome].  Chrome does not need to be the default browser, but ErosWeb relies on the [Web Serial API](https://github.com/WICG/serial/blob/gh-pages/EXPLAINER.md) to control the ET-312.  As of July 2020, this feature is only available in Chrome.
 
 *When ready, connect the ET-312 to the computer, yourself to the ET-312, then [start a scene](/sub.html).*
