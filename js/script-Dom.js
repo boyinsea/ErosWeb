@@ -29,12 +29,18 @@ document.addEventListener("DOMContentLoaded", () => {
 		Install document- and window-level event handlers
 	*/
 
-	// Do final visual fixups and show UI once all elements are loaded and styled into final form.
+	// Show UI once all elements are loaded and styled into final form.
 	window.addEventListener("load", () => { UI.appUi.hidden = false; });
 
 	// Prevent wayward click and submit-type events from inadvertently resetting
 	// forms (since there is no server to submit to anyways...)
 	UI.controls.addEventListener("submit", (e) => { e.preventDefault(); });
+
+	document.addEventListener('keydown', (k) => {
+		const l = document.activeElement;
+		if (("Enter" == k.code) && ((l == UI.inputSId) || (l == UI.inputPIN)))
+			UI.butConnect.dispatchEvent(new Event('click'));
+	});
 
 	/*
 		Set Defaults from local storage and QueryString parameters
@@ -177,34 +183,34 @@ document.addEventListener("DOMContentLoaded", () => {
 	// 	UI.audioUI = new audioUI();
 	// } else {
 
-		// UI.ckMonitor.checked = true;
+	// UI.ckMonitor.checked = true;
 
-		// Give a one-time warning if playing an audiostim file but
-		// ET-312 isn't connected or set to an audio mode.
-		UI.localAudio.addEventListener('play', function () {
-			let OK = UI.localAudioPlayWarning;
-			if (STATE.ctl) {
-				const m = STATE.ctl.getMode();
-				if (m && m.startsWith("Audio")) OK = true;
-			}
-			if (!OK) {
-				console.dir(STATE.ctl);
-				UIkit.notification(
-					(STATE.ctl) ?
-					'Remember to select an Audio mode!' :
-					"<span class='uk-text-small'>Audio will be sent to remote sub's ET-312 box once connected." +
-					// ((UI.ckMonitor.checked) ? "" : " Use the \"Monitor\" checkbox to preview audio locally.") +
-					"</span>", { pos: 'bottom-center', status: 'primary' });
-				UI.localAudioPlayWarning = true;
-			}
-		});
+	// Give a one-time warning if playing an audiostim file but
+	// ET-312 isn't connected or set to an audio mode.
+	UI.localAudio.addEventListener('play', function () {
+		let OK = UI.localAudioPlayWarning;
+		if (STATE.ctl) {
+			const m = STATE.ctl.getMode();
+			if (m && m.startsWith("Audio")) OK = true;
+		}
+		if (!OK) {
+			console.dir(STATE.ctl);
+			UIkit.notification(
+				(STATE.ctl) ?
+				'Remember to select an Audio mode!' :
+				"<span class='uk-text-small'>Audio will be sent to remote sub's ET-312 box once connected." +
+				// ((UI.ckMonitor.checked) ? "" : " Use the \"Monitor\" checkbox to preview audio locally.") +
+				"</span>", { pos: 'bottom-center', status: 'primary' });
+			UI.localAudioPlayWarning = true;
+		}
+	});
 
-		UI.audioUI = new audioUI(); //() => {
-			// Final setup steps to be run upon first user interaction with page.
-			// UI.audioUI.configurePlayer(UI.localAudio);
-			// UI.audioUI.addMonitor(UI.localAudio, UI.ckMonitor, UI.localAudioDest);
-			// UI.audioUI.monitor(UI.localAudio, true);
-		//});
+	UI.audioUI = new audioUI(); //() => {
+	// Final setup steps to be run upon first user interaction with page.
+	// UI.audioUI.configurePlayer(UI.localAudio);
+	// UI.audioUI.addMonitor(UI.localAudio, UI.ckMonitor, UI.localAudioDest);
+	// UI.audioUI.monitor(UI.localAudio, true);
+	//});
 	// }
 	// Configure backup volume control for Safari
 	// (default rendering doesn't work well in our layout)
@@ -216,8 +222,8 @@ document.addEventListener("DOMContentLoaded", () => {
 		UI.backupVolume.addEventListener("input", (e) => {
 			// console.log(`${UI.backupVolume.value} .. ${UI.localAudio.volume}`);
 			UI.localAudio.volume = UI.backupVolume.value;
-//			if (player.monitor instanceof GainNode)
-				// UI.localAudio.monitor.gain.exponentialRampToValueAtTime(UI.backupVolume.value, UI.localAudio.monitor.context.currentTime + 0.1)
+			//			if (player.monitor instanceof GainNode)
+			// UI.localAudio.monitor.gain.exponentialRampToValueAtTime(UI.backupVolume.value, UI.localAudio.monitor.context.currentTime + 0.1)
 		});
 		// UI.localAudio.addEventListener('volumechange', (event) => {
 		// 	console.log(`Volume ${UI.localAudio.volume}`);
@@ -239,7 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	UI.microphoneInput.nextElementSibling.addEventListener("click", testMicLevel);
 	UI.butConnect.addEventListener("click", clickConnect);
 	UI.butShare.addEventListener("click", clickShare);
-	toggleUIConnected(false);
+	toggleConnectionState(false);
 });
 
 
@@ -286,29 +292,32 @@ async function clickConnect() {
 		// 	STATE.estimAudioConnection = null;
 		// }
 
+		// Firefox doesn't forward a "close" event to the remote sub
+		// (PeerJS issue) so we ask the remote sub to close the
+		// connection for us.
+		if ("" == navigator.vendor) {
+			STATE.dataConn.send({ goodbye: true });
+			console.log("Manual 'goodbye' message sent.");
+			STATE.dataConn = null;
+			return;
+		}
+
 		if (STATE.dataConn) {
 			// Save and null the STATE pointer to the data connection;
 			// this prevents the UI from warning that the remote sub
-			// closed the connection.
+			// closed the connection during the close event handler.
 			const c = STATE.dataConn;
 			STATE.dataConn = null;
 			c.close();
 		}
 
-		if (STATE.peer) {
-			STATE.peer.destroy();
-			STATE.peer = null;
-		}
-		console.log("DOM peer destroyed");
-
-		// Update UI to "not connected" state
-		toggleUIConnected(false);
+		toggleConnectionState(false);
 	}
 }
 
 // Toggle state based on presence of a connection to a remote session
 // (connected, true|false).
-function toggleUIConnected(connected) {
+function toggleConnectionState(connected) {
 
 	UI.butConnect.textContent = (connected) ? "Disconnect" : "Connect";
 	UI.butConnect.disabled = false;
@@ -324,7 +333,21 @@ function toggleUIConnected(connected) {
 		UI.inputSId.classList.toggle('uk-form-danger', false);
 		UI.inputPIN.classList.toggle('uk-form-danger', false);
 	} else {
+
 		refreshUI(false); // Visually disable box controls
+
+		// If we are still holding a data connection object,
+		// this means that the sub has ended the scene.
+		if (STATE.dataConn) {
+			STATE.dataConn = null;
+			UIkit.modal.alert(`Remote sub has ended the scene.`);
+		}
+
+		if (STATE.peer) {
+			STATE.peer.destroy();
+			STATE.peer = null;
+			console.log("DOM peer destroyed");
+		}
 	}
 }
 
@@ -392,6 +415,7 @@ function createPeerConnection(destId) {
 
 	P.on('open', () => {
 		const dataConn = P.connect(destId.replace('-', ''), {
+			reliable: true,
 			metadata: {
 				PIN: UI.inputPIN.value,
 				sceneName: UI.inputName.value,
@@ -411,7 +435,7 @@ function createPeerConnection(destId) {
 						// proceed with setup steps.
 
 						STATE.dataConn = dataConn;
-						toggleUIConnected(true);
+						toggleConnectionState(true);
 
 						// Display success message if the sub's ET-312 is linked.
 						// If not, a more detailed modal dialog will be displayed below.
@@ -520,21 +544,8 @@ function createPeerConnection(destId) {
 		});
 
 		dataConn.on('close', () => {
-
-			// if (STATE.estimAudioConnection) {
-			// 	STATE.estimAudioConnection.close();
-			// 	STATE.estimAudioConnection = null;
-			// }
-
 			STATE.ctl = null;
-			toggleUIConnected(false);
-
-			// If we are still holding a data connection object,
-			// this means that the sub has ended the scene.
-			if (STATE.dataConn) {
-				STATE.dataConn = null;
-				UIkit.modal.alert(`Remote sub has ended the scene.`);
-			}
+			toggleConnectionState(false);
 		});
 
 		dataConn.on('error', (err) => {
@@ -545,16 +556,10 @@ function createPeerConnection(destId) {
 	});
 
 	P.on('error', (err) => {
-		console.dir(err);
-		console.dir(P);
 		if ("peer-unavailable" == err.type) UI.inputSId.classList.toggle('uk-form-danger', true);
-		// if (STATE.dataConn) {
-		STATE.peer = null; // Drop reference to the peer object so we can try again.
-		toggleUIConnected(false);
+		toggleConnectionState(false);
 		UI.butConnect.disabled = false;
 		showAlert('connectionFailed', err);
-		STATE.dataConn = null;
-		// }
 	});
 
 	P.on('call', (mediaConnection) => {

@@ -66,8 +66,6 @@ class audioUI {
 				if ('' == option.text) option.text = this.DEFAULT_NAME[deviceInfo.kind];
 				this.selectList[deviceInfo.kind].push(option);
 			}
-
-			console.log(`${option.text} = ${option.value}`);
 		}
 	}
 
@@ -252,7 +250,6 @@ class audioUI {
 		if (('audiooutput' == kind) && !this.sourceSelectionEnabled) {
 
 			// Device selection is not enabled, e.g. Safari
-			//selectorDiv.hidden = true;
 			const option = document.createElement('option');
 			option.value = "";
 			option.text = this.DEFAULT_NAME[kind];
@@ -282,18 +279,18 @@ class audioUI {
 				// If this selector controls a player and it is set up for monitoring,
 				// manipulate the player's output object.  If not, just manipulate the player.
 				if (player) {
-					console.dir(player);
-					console.log(` = ${e.target.value}`);
-					if (player.monitor)
-						await player.output.setSinkId(e.target.value);
-					else
+					// console.dir(player);
+					// console.log(` = ${e.target.value}`);
+					// if (player.monitor)
+					// 	await player.output.setSinkId(e.target.value);
+					// else
 						await player.setSinkId(e.target.value);
 				}
 			});
 
 			// If selected device (net of saved values) isn't the default,
 			// switch to it now.
-			if (('default' != defaultDest) && ('default' != selector.value))
+			// if (('default' != defaultDest) && ('default' != selector.value))
 				//selector.dispatchEvent(new Event('change'));
 
 			// Enable UI
@@ -429,18 +426,12 @@ class audioUI {
 			}, false);
 		}
 
-		// Configure basic player controls
+		// Configure player controls
 		const ckLoop = target.querySelector('input[type="checkbox"].loop');
 		if (ckLoop) {
 			ckLoop.checked = player.loop;
 			ckLoop.addEventListener('change', () => { player.loop = ckLoop.checked; });
 		}
-
-		// const ckAutoplay = target.querySelector('input[type="checkbox"].autoplay');
-		// if (ckAutoplay) {
-		// 	ckAutoplay.checked = player.autoplay;
-		// 	ckAutoplay.addEventListener('change', () => { player.autoplay = ckAutoplay.checked; });
-		// }
 	}
 
 	// Internal method; load an audio file into the player

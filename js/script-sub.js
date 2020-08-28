@@ -61,6 +61,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	window.addEventListener("resize", () => { resize(UI.log); });
 
+	document.addEventListener('keydown', (k) => {
+		const l = document.activeElement;
+		if (("Enter" == k.code) && ((l == UI.inputName) || (l == UI.inputPIN)))
+			UI.butPresent.dispatchEvent(new Event('click'));
+	});
+
 	// Capture "timeout" and similar errors when talking to ET-312
 	window.addEventListener("unhandledrejection", async function (e) {
 		console.warn(e.reason);
@@ -145,9 +151,12 @@ document.addEventListener("DOMContentLoaded", () => {
 	// Finalize audio component setup; initialize application state
 	UI.estimAudio = new Audio(); // Renderer only; not present in UI.
 	UI.estimAudio.addEventListener('canplaythrough', () => {
-		STATE.dataConn.send( { estimAudio: true } );
-		UI.iconEstimAudio.classList.toggle("connected", true);
+		if (STATE.dataConn) {
+			STATE.dataConn.send({ estimAudio: true });
+			UI.iconEstimAudio.classList.toggle("connected", true);
+		}
 	});
+
 	UI.audioUI = new audioUI();
 	toggleState(false, false)
 		.then(() => UI.audioUI.init())
@@ -501,6 +510,10 @@ function createPeerConnection(name) {
 				// 	if (STATE.estimAudioConnection) STATE.estimAudioConnection.close();
 				// }
 				if ('estimAudio' == prop) handleEstimAudio(obj);
+
+				// Manual connection close; works around a PeerJS issue
+				// when Dom is running Firefox.
+				if (('goodbye' == prop) && obj) dataConnection.close();
 			}
 		});
 
@@ -562,59 +575,59 @@ function createPeerConnection(name) {
 		//
 		// } else {
 
-			console.log('Call is shared audio/video.');
+		console.log('Call is shared audio/video.');
 
-			if (STATE.mediaConnection) STATE.mediaConnection.close();
+		if (STATE.mediaConnection) STATE.mediaConnection.close();
 
-			mediaConnection.answer(STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice });
-			STATE.mediaConnection = mediaConnection;
+		mediaConnection.answer(STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice });
+		STATE.mediaConnection = mediaConnection;
 
-			// This happens when remote audio/video arrives from the Dom
-			// There's an issue with peerJS where the same stream may be
-			// sent twice; https://github.com/peers/peerjs/issues/609
-			STATE.mediaConnection.on('stream', (stream) => {
+		// This happens when remote audio/video arrives from the Dom
+		// There's an issue with peerJS where the same stream may be
+		// sent twice; https://github.com/peers/peerjs/issues/609
+		STATE.mediaConnection.on('stream', (stream) => {
 
-				if (UI.remoteVideo.srcObject && (UI.remoteVideo.srcObject.id == stream.id)) return;
+			if (UI.remoteVideo.srcObject && (UI.remoteVideo.srcObject.id == stream.id)) return;
 
-				console.log(`a/v stream.  Current dest: ${UI.remoteVideo.sinkId}; new: ${UI.localAudioDest.getValue()}`);
-				console.dir(stream);
+			console.log(`a/v stream.  Current dest: ${UI.remoteVideo.sinkId}; new: ${UI.localAudioDest.getValue()}`);
+			console.dir(stream);
 
-				UI.remoteVideo.nextElementSibling.hidden = true; // Hide overlay
-				UI.remoteVideo.srcObject = stream;
-				// const n = stream.clone();
-				// n.removeTrack(n.getAudioTracks()[1]);
-				// UI.remoteVideo.srcObject = n;
-				//
-				// const e = new MediaStream([stream.getAudioTracks()[1]]);
-				// UI.estimAudio.srcObject = e;
-				// UI.estimAudio.play()
-				// //.then(UI.estimAudio.setSinkId(UI.estimAudioDest.getValue()))
-				// .then(UI.iconEstimAudio.classList.toggle("connected", true));
+			UI.remoteVideo.nextElementSibling.hidden = true; // Hide overlay
+			UI.remoteVideo.srcObject = stream;
+			// const n = stream.clone();
+			// n.removeTrack(n.getAudioTracks()[1]);
+			// UI.remoteVideo.srcObject = n;
+			//
+			// const e = new MediaStream([stream.getAudioTracks()[1]]);
+			// UI.estimAudio.srcObject = e;
+			// UI.estimAudio.play()
+			// //.then(UI.estimAudio.setSinkId(UI.estimAudioDest.getValue()))
+			// .then(UI.iconEstimAudio.classList.toggle("connected", true));
 
-				//const i = UI.localAudioDest.getValue();
+			//const i = UI.localAudioDest.getValue();
 
-				// Setting setSinkId can be a little unstable, and has the tendency to change
-				// the sinkId of other players as well so we reset those.
-				// This assumes sinkId is always set to default (either by a
-				// 'close' event or because no stream has been played yet.
-				UI.remoteVideo.play()
-				//.then(UI.remoteVideo.setSinkId(i))
-			});
+			// Setting setSinkId can be a little unstable, and has the tendency to change
+			// the sinkId of other players as well so we reset those.
+			// This assumes sinkId is always set to default (either by a
+			// 'close' event or because no stream has been played yet.
+			UI.remoteVideo.play()
+			//.then(UI.remoteVideo.setSinkId(i))
+		});
 
-			// This happens when the media connection is closed, e.g. by the
-			// remote dom ending the call.  The connection does NOT close if
-			// the Dom has simply stopped sharing audio/video but the sub
-			// has not (i.e. still sending audio/video to the Dom).
-			STATE.mediaConnection.on('close', () => {
-				STATE.mediaConnection = null;
-				UI.remoteVideo.pause();
-				UI.remoteVideo.srcObject = null;
-				// UI.remoteVideo.setSinkId('')
-				// .then(() => {
-				UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
-				console.log('mediaConnection closed.');
-				// });
-			});
+		// This happens when the media connection is closed, e.g. by the
+		// remote dom ending the call.  The connection does NOT close if
+		// the Dom has simply stopped sharing audio/video but the sub
+		// has not (i.e. still sending audio/video to the Dom).
+		STATE.mediaConnection.on('close', () => {
+			STATE.mediaConnection = null;
+			UI.remoteVideo.pause();
+			UI.remoteVideo.srcObject = null;
+			// UI.remoteVideo.setSinkId('')
+			// .then(() => {
+			UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
+			console.log('mediaConnection closed.');
+			// });
+		});
 		// }
 	});
 
