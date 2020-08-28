@@ -71,6 +71,7 @@ class audioUI {
 		}
 	}
 
+/*
 	// Configures a HTML <audio> element as an audio stream source for WebAudio and WebRTC.
 	// This enables multiple destinations for stream output and local monitoring.
 	//
@@ -108,16 +109,16 @@ class audioUI {
 		// If audio output is not selectable, monitoring is irrelevant because
 		// all audio output goes to the same place.
 		// Hide the checkbox control and its containing label.
-		/*
-		if ((this.selectList.audiooutput.length <= 1) && !player.source) {
-			ckMonitor.parentElement.hidden = true;
-			return;
-		}
-		*/
+
+		// if ((this.selectList.audiooutput.length <= 1) && !player.source) {
+		// 	ckMonitor.parentElement.hidden = true;
+		// 	return;
+		// }
+
 
 		ckMonitor.addEventListener('change', () => { this.monitor(player, ckMonitor.checked) });
 
-		if (this.sourceSelectionEnabled /* selectList.audiooutput.length > 1 */) {
+		if (this.sourceSelectionEnabled ) {
 
 			monitorOutputSelector.addEventListener('change', async function () {
 				// console.log('Monitor aware of changed MONITOR output selection.');
@@ -226,7 +227,7 @@ class audioUI {
 			}
 		}
 	}
-
+*/
 	// Configure a <select> element to serve as the input or output selector for a media element,
 	// based on the environment configuration as determined by init.
 	configureSelector(selectorDiv, player, kind = 'audiooutput') {
@@ -435,11 +436,11 @@ class audioUI {
 			ckLoop.addEventListener('change', () => { player.loop = ckLoop.checked; });
 		}
 
-		const ckAutoplay = target.querySelector('input[type="checkbox"].autoplay');
-		if (ckAutoplay) {
-			ckAutoplay.checked = player.autoplay;
-			ckAutoplay.addEventListener('change', () => { player.autoplay = ckAutoplay.checked; });
-		}
+		// const ckAutoplay = target.querySelector('input[type="checkbox"].autoplay');
+		// if (ckAutoplay) {
+		// 	ckAutoplay.checked = player.autoplay;
+		// 	ckAutoplay.addEventListener('change', () => { player.autoplay = ckAutoplay.checked; });
+		// }
 	}
 
 	// Internal method; load an audio file into the player

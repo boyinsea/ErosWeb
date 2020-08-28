@@ -52,7 +52,8 @@ class webRTChelper {
 					if ('voice' == mode) {
 						sdpLines[i] = result[0] + 'maxplaybackrate=16000; sprop-maxcapturerate=16000; maxaveragebitrate=20000; stereo=0; useinbandfec=1; usedtx=0';
 					} else if ('audio' == mode) {
-						sdpLines[i] = result[0] + 'maxaveragebitrate=510000; stereo=1; useinbandfec=1; minptime=10';
+						//sdpLines[i] = result[0] + 'maxaveragebitrate=510000; stereo=1; useinbandfec=1; minptime=10';
+						sdpLines[i] = result[0] + 'maxaveragebitrate='+128*1024+'; stereo=1; sprop-stereo=1 ; cbr=1'
 					}
 					break;
 				}

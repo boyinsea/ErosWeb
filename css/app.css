@@ -31,6 +31,10 @@ audio::-webkit-media-controls-volume-slider-container {
 	display: none !important;
 }
 
+div#dropTarget audio:not([hidden]) ~ svg {
+	display: none;
+}
+
 button[uk-icon].uk-button-small {
 	color: rgb(144, 144, 144);
 	padding-left: 15px;

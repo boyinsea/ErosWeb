@@ -144,6 +144,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Finalize audio component setup; initialize application state
 	UI.estimAudio = new Audio(); // Renderer only; not present in UI.
+	UI.estimAudio.addEventListener('canplaythrough', () => {
+		STATE.dataConn.send( { estimAudio: true } );
+		UI.iconEstimAudio.classList.toggle("connected", true);
+	});
 	UI.audioUI = new audioUI();
 	toggleState(false, false)
 		.then(() => UI.audioUI.init())
@@ -283,6 +287,9 @@ async function toggleState(conn, box) {
 			}
 		}
 
+		// Stop playing estim audio, if any
+		UI.estimAudio.pause();
+
 		// Tear down any existing connections
 		if (STATE.mediaConnection) {
 			STATE.mediaConnection.close();
@@ -298,7 +305,7 @@ async function toggleState(conn, box) {
 	}
 
 	// UI configuration net of any changes
-	box = Boolean(box); //STATE.et312);
+	box = Boolean(STATE.et312);
 	conn = Boolean(conn); //STATE.dataConn);
 	UI.controlsOnline.classList.toggle("disabled", !box);
 	UI.pnlSession.classList.toggle("connected", conn);
@@ -348,6 +355,10 @@ async function clickPresent() {
 		// which toggles application state to "connected" and updates
 		// the button state/remaining UI components.
 		STATE.peer = createPeerConnection(UI.inputName.value);
+
+		// Configure audio outputs (in response to user interaction)
+		await UI.estimAudio.setSinkId(UI.estimAudioDest.getValue());
+		await UI.remoteVideo.setSinkId(UI.localAudioDest.getValue());
 
 	} else {
 
@@ -485,15 +496,11 @@ function createPeerConnection(name) {
 						STATE.videoShare, { sdpTransform: webRTChelper.sdpAudio });
 				}
 
-				// Estim Audio File
-				/*
-				if ('estimAudioFile' == prop) {
-					console.log('Received estim audio file:');
-					console.dir(obj);
-					// Update UI (icon) when file loaded
-				}
-				// Handle play/pause/seek
-				*/
+				// Estim Audio
+				// if (('estimAudio' == prop) && !obj) {
+				// 	if (STATE.estimAudioConnection) STATE.estimAudioConnection.close();
+				// }
+				if ('estimAudio' == prop) handleEstimAudio(obj);
 			}
 		});
 
@@ -503,10 +510,10 @@ function createPeerConnection(name) {
 				UIkit.notification(`<b>${UI.domName.textContent}</b> disconnected.`, { pos: 'top-left', status: 'primary' });
 				STATE.dataConn = null;
 			}
-			if (STATE.estimAudioConnection) {
-				STATE.estimAudioConnection.close();
-				STATE.estimAudioConnection = null;
-			}
+			// if (STATE.estimAudioConnection) {
+			// 	STATE.estimAudioConnection.close();
+			// 	STATE.estimAudioConnection = null;
+			// }
 			toggleState(false, STATE.ctl);
 		});
 
@@ -520,28 +527,42 @@ function createPeerConnection(name) {
 	// This happens when Dom calls us with either audio/video to share or eStim audio
 	P.on('call', (mediaConnection) => {
 
+		console.log('Call!  incoming mediaConnection:');
 		console.dir(mediaConnection);
 
-		if (mediaConnection.metadata && mediaConnection.metadata.estimAudio) {
+		// if (mediaConnection.metadata && mediaConnection.metadata.estimAudio) {
+		//
+		// 	console.log('Call is estimAudio.');
+		//
+		// 	if (STATE.estimAudioConnection) STATE.estimAudioConnection.close();
+		//
+		// 	mediaConnection.answer(null);
+		// 	STATE.estimAudioConnection = mediaConnection;
+		//
+		// 	STATE.estimAudioConnection.on('stream', (stream) => {
+		//
+		// 		console.log(`estimAudio stream.  Current dest: ${UI.estimAudio.sinkId}; new: ${UI.estimAudioDest.getValue()}`);
+		//
+		// 		UI.estimAudio.srcObject = stream;
+		// 		UI.estimAudio.play()
+		// 			//.then(UI.estimAudio.setSinkId(UI.estimAudioDest.getValue()))
+		// 			.then(UI.iconEstimAudio.classList.toggle("connected", true));
+		// 	});
+		//
+		// 	STATE.estimAudioConnection.on('close', () => {
+		// 		UI.estimAudio.pause();
+		// 		UI.estimAudio.srcObject = null;
+		// 		STATE.estimAudioConnection = null;
+		// 		// UI.estimAudio.setSinkId('')
+		// 		// 	.then(() => {
+		// 		UI.iconEstimAudio.classList.toggle("connected", false);
+		// 		console.log('estimAudio connection closed.');
+		// 		//});
+		// 	});
+		//
+		// } else {
 
-			mediaConnection.answer(null, { sdpTransform: webRTChelper.sdpAudio });
-			STATE.estimAudioConnection = mediaConnection;
-
-			mediaConnection.on('stream', (stream) => {
-				UI.estimAudio.autoplay = true;
-				UI.estimAudio.srcObject = stream;
-				UI.iconEstimAudio.classList.toggle("connected", true);
-			});
-
-			mediaConnection.on('close', () => {
-				console.log("estim audio connection closed");
-				UI.estimAudio.pause();
-				UI.estimAudio.srcObject = null;
-				STATE.estimAudioConnection = null;
-				UI.iconEstimAudio.classList.toggle("connected", false);
-			});
-
-		} else {
+			console.log('Call is shared audio/video.');
 
 			if (STATE.mediaConnection) STATE.mediaConnection.close();
 
@@ -552,35 +573,32 @@ function createPeerConnection(name) {
 			// There's an issue with peerJS where the same stream may be
 			// sent twice; https://github.com/peers/peerjs/issues/609
 			STATE.mediaConnection.on('stream', (stream) => {
-				console.log('Got mediaConnection stream:');
-				console.dir(stream);
+
 				if (UI.remoteVideo.srcObject && (UI.remoteVideo.srcObject.id == stream.id)) return;
+
+				console.log(`a/v stream.  Current dest: ${UI.remoteVideo.sinkId}; new: ${UI.localAudioDest.getValue()}`);
+				console.dir(stream);
+
 				UI.remoteVideo.nextElementSibling.hidden = true; // Hide overlay
 				UI.remoteVideo.srcObject = stream;
-
-				// stream.getTracks()[0].addEventListener('ended', (e) => {
-				// 	console.log('mediaConnection track ended:');
-				// 	console.dir(e);
-				// 	UI.remoteVideo.pause();
-				// 	UI.remoteVideo.srcObject = null;
-				// });
+				// const n = stream.clone();
+				// n.removeTrack(n.getAudioTracks()[1]);
+				// UI.remoteVideo.srcObject = n;
 				//
-				// stream.getTracks()
-				// .filter(t => "video" == t.kind)
-				// .forEach(t => t.addEventListener('muted', (e) => {
-				// 	console.log('mediaConnection track muted:');
-				// 	console.dir(e);
-				// }));
+				// const e = new MediaStream([stream.getAudioTracks()[1]]);
+				// UI.estimAudio.srcObject = e;
+				// UI.estimAudio.play()
+				// //.then(UI.estimAudio.setSinkId(UI.estimAudioDest.getValue()))
+				// .then(UI.iconEstimAudio.classList.toggle("connected", true));
 
-				console.log(`Remote video sinkId is: ${UI.remoteVideo.sinkId}`);
+				//const i = UI.localAudioDest.getValue();
 
-				const i = UI.localAudioDest.getValue();
-				console.log(`Destination for remote audio is: ${i}`);
-
-				// Setting setSinkId can be a little unstable...
+				// Setting setSinkId can be a little unstable, and has the tendency to change
+				// the sinkId of other players as well so we reset those.
+				// This assumes sinkId is always set to default (either by a
+				// 'close' event or because no stream has been played yet.
 				UI.remoteVideo.play()
-					//.then(UI.remoteVideo.setSinkId('default'))
-					.then(UI.remoteVideo.setSinkId(i));
+				//.then(UI.remoteVideo.setSinkId(i))
 			});
 
 			// This happens when the media connection is closed, e.g. by the
@@ -591,13 +609,13 @@ function createPeerConnection(name) {
 				STATE.mediaConnection = null;
 				UI.remoteVideo.pause();
 				UI.remoteVideo.srcObject = null;
-				UI.remoteVideo.setSinkId('')
-					.then(() => {
-						UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
-						console.log('mediaConnection closed.');
-					});
+				// UI.remoteVideo.setSinkId('')
+				// .then(() => {
+				UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
+				console.log('mediaConnection closed.');
+				// });
 			});
-		}
+		// }
 	});
 
 	return P;
@@ -642,6 +660,21 @@ function copyLink(e) {
 	UIkit.notification('A link to control this session has been copied to the clipboard.', 'primary');
 }
 
+/*
+	Handle estimAudio commands
+*/
+async function handleEstimAudio(obj) {
+	console.log('Handling e-stim audio command(s)', obj);
+
+	if ('file' in obj) UI.estimAudio.src = URL.createObjectURL(new Blob([obj.file], { type: obj.type }));
+	if ('volume' in obj) UI.estimAudio.volume = obj.volume;
+	if ('seek' in obj) UI.estimAudio.currentTime = obj.seek;
+	if ('play' in obj) {
+		if (obj.play) UI.estimAudio.play();
+		//.then(UI.estimAudio.setSinkId(UI.estimAudioDest.getValue()))
+		else UI.estimAudio.pause();
+	}
+}
 
 /*
 	SHARE / UNSHARE AUDIO AND VIDEO

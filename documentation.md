@@ -6,12 +6,12 @@ The ET-312 power unit connects to a computer via the "Link" port on the ET-312, 
 #### Getting an RS-232 Serial Port
 RS-232 hardware is relatively rare on modern computers, so a USB-to-serial adapter can be useful.  [Amazon has a wide selection](https://www.amazon.com/s?k=usb-to-serial); be sure to choose a product that is compatible with your operating system.
 
-The following two products have been tested and are known to work with ErosWeb running on a MacBook Pro with MacOS Catalina; they should work with current versions of Windows as well:
+The following two products have been tested and are known to work with ErosWeb running on a MacBook Pro with MacOS Catalina.  The TRENDnet device has also been tested on PCs with Windows 10:
 
 * [Cable Matters USB C to Serial Adapter Cable](https://www.amazon.com/gp/product/B075GV6VL1/).  This fits directly into the "Thunderbolt 3" ports on the MacBook.
 * [TRENDnet USB to Serial 9-Pin Converter Cable](https://www.amazon.com/gp/product/B0007T27H8/).  This uses a standard USB 1.1 connector.
 
-Once the serial port hardware is installed and working according to the manufacturer's instructions (and drivers),  you will have a male "DB9" serial port attached to your computer.  It should automatically become available to Google Chrome and thus to ErosWeb.
+Once the serial port hardware is installed and working according to the manufacturer's instructions (and drivers),  you will have a male "DB9" serial port attached to your computer.  It should automatically become available to Google Chrome or Edge and thus to ErosWeb.
 
 #### Connecting to the ET-312 "Link" Port
 
@@ -29,8 +29,8 @@ ErosWeb enables the Dom to send e-stim audio to the sub when both Dom and sub ar
 These instructions pertain to the sub, who is responsible for technology set-up and presenting themselves for control by a Dom.
 
 #### One-time Setup
-1. Install the latest version of Google Chrome, if required.
-2. In Chrome, navigate to `chrome://flags`, search for "Experimental Web Platform Features" and make sure that feature is enabled.
+1. Install the latest version of Google Chrome (if required), or make sure that Microsoft Edge is up-to-date.
+2. Search for "Experimental Web Platform Features" on the `chrome://flags` or `edge://flags` page and make sure that feature is enabled.
 
 #### Linking the ET-312
 1. Turn **off** the ET-312 box.
@@ -38,9 +38,9 @@ These instructions pertain to the sub, who is responsible for technology set-up 
 3. Using Google Chrome, go to the [ErosWeb sub page](/sub.html).
 4. Turn **on** the ET-312 box.
 5. Click "Link ET-312" on the ErosWeb page.
-6. Choose the serial port that the ET-312 is connected to. This may require some trial and error.  On MacOS, the correct port is usually indicated by `(tty.usbserial)`. ![Choose Serial Port](/assets/choose-serial-port.png)
+6. Choose the serial port that the ET-312 is connected to. This may require some trial and error, especially on MacOS.  On MacOS, the correct port is usually indicated by `(tty.usbserial)`. ![Choose Serial Port](/assets/choose-serial-port.png)
 7. Once connected, ErosWeb will report "ET-312 linked and ready" and display the current power level of the box (Low, Normal, or High).
-8. You may still use the front panel controls to adjust the ET-312 output levels and mode.  You can control the overall power level of the box via the ErosWeb application.
+8. You may still use the front panel controls to adjust the ET-312 output levels and mode until a Dom connects.  You can control the overall power level of the box via the ErosWeb application.
 
 #### Presenting
 
