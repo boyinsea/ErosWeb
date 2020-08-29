@@ -12,6 +12,11 @@ class ET312Controller {
 	 * @constructor
 	 */
 	constructor(unit) {
+
+		for (const method of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
+			if ('constructor' !== method) this[method] = this[method].bind(this);
+		}
+
 		if (unit instanceof ET312Base) {
 			this._et312 = unit;
 		} else {
@@ -177,7 +182,7 @@ class ET312Controller {
 		const retVal = await this._et312.writeAddress(address, value);
 		return ((retVal instanceof Uint8Array) && (6 == retVal[0]));
 	}
-	setValue = this.setValue.bind(this);
+	// setValue = this.setValue.bind(this);
 
 	async getMode() {
 		const mode = await this._et312.readMode();
@@ -228,7 +233,7 @@ class ET312Controller {
 
 		return result;
 	}
-	setMode = this.setMode.bind(this);
+	// setMode = this.setMode.bind(this);
 
 	//	Set Power Level 1-3 (0x6b = low, etc.)
 	async setPowerLevel(newLevel) {
@@ -239,7 +244,7 @@ class ET312Controller {
 		console.dir(result);
 		return {POWERLEVEL: result};
 	}
-	setPowerLevel = this.setPowerLevel.bind(this);
+	// setPowerLevel = this.setPowerLevel.bind(this);
 
 	// Immediately stop stim output by changing to a non-existent mode
 	async stop() {
@@ -247,7 +252,7 @@ class ET312Controller {
 		this.display_mode_name('-PAUSED-');
 		return result;
 	}
-	stop = this.stop.bind(this);
+	// stop = this.stop.bind(this);
 
 	// Clear the mode name in the display
 	async display_clear_mode_name() {

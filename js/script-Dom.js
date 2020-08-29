@@ -212,24 +212,34 @@ document.addEventListener("DOMContentLoaded", () => {
 	// UI.audioUI.monitor(UI.localAudio, true);
 	//});
 	// }
-	// Configure backup volume control for Safari
-	// (default rendering doesn't work well in our layout)
-	// [Safari audio support disabled for now]
 
+	// Configure backup volume control for Safari.
+	// (default rendering doesn't work well in our layout)
 	if (("Apple Computer, Inc." == navigator.vendor) && UI.backupVolume) {
 		UI.backupVolume.hidden = false;
 		UI.backupVolume.value = UI.localAudio.volume;
-		UI.backupVolume.addEventListener("input", (e) => {
-			// console.log(`${UI.backupVolume.value} .. ${UI.localAudio.volume}`);
-			UI.localAudio.volume = UI.backupVolume.value;
-			//			if (player.monitor instanceof GainNode)
-			// UI.localAudio.monitor.gain.exponentialRampToValueAtTime(UI.backupVolume.value, UI.localAudio.monitor.context.currentTime + 0.1)
-		});
-		// UI.localAudio.addEventListener('volumechange', (event) => {
-		// 	console.log(`Volume ${UI.localAudio.volume}`);
-		// });
-	}
 
+		UI.backupVolume.addEventListener("input", (e) => {
+
+			console.log(`Volume ${e.target.value}`);
+
+			if (navigator.appVersion.match(/\(iPad;/)) {
+				// iOS doesn't support control of the volume property;
+				// work-around is to call the event forwarder directly.
+				forwardAudioEvent({
+					type: 'volumechange',
+					target: { volume: e.target.value }
+				});
+			} else {
+				// On MacOS, volume can be set and volumechange
+				// events are fired in the normal way.
+				UI.localAudio.volume = e.target.value;
+				//			if (player.monitor instanceof GainNode)
+				// UI.localAudio.monitor.gain.exponentialRampToValueAtTime(UI.backupVolume.value, UI.localAudio.monitor.context.currentTime + 0.1)
+			}
+		});
+
+	}
 
 	UI.audioUI.init().then(() => {
 		UI.audioUI.configureSelector(UI.localAudioDest, UI.localVideo);

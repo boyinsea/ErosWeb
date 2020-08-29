@@ -94,4 +94,12 @@ The sub can disable the ability to change the box power level  and/or limit the 
 
 ## FAQ
 
-_Coming Soon!_
+_More Coming Soon!_
+
+### E-Stim Audio
+
+#### Why can't iPad control the volume level for e-stim audio files?
+
+You need to enable iOS-specific functionality for the ErosWeb page.  Click on the "<span style="font-size: 75%">A</span>A" icon in the Safari address bar and choose "Request Mobile Website."
+
+The output volume on iOS devices (like iPad) can only be controlled by device buttons or operating system controls.  Changing the volume level in this way will change the volume for You (the Dom), but won't affect the sub.  The "mobile version" of the ErosWeb page detects this situation and correctly forwards volume change commands to the sub (even though Your local volume doesn't change).

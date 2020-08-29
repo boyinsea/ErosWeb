@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			(("NetworkError" == e.reason.name) && ("The device has been lost." == e.reason.message))) {
 
 			e.preventDefault();
-			log.textContent += 'Error: Connection to ET-312 reset.\n';
+			UI.log.textContent += 'Error: Connection to ET-312 reset.\n';
 			showAlert('connectionLost', e.reason);
 
 			// Error cleanup; normal cleanup and shutdown isn't possible
@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			newLevel = parseInt(newLevel);
 
 			// Dispatch set level command to box & update remote peer, if any
-			doCommand(STATE.ctl.setPowerLevel, newLevel)
+			doCommand(STATE.ctl.setPowerLevel, newLevel);
 			UI.powerLevel.highlightLevel(newLevel);
 		}
 	});
@@ -229,12 +229,12 @@ async function toggleState(conn, box) {
 				STATE.et312 = new ET312Serial(port);
 				await STATE.et312.connect();
 				UI.butConnect.textContent = "Unlink ET-312";
-				log.textContent += 'ET-312 linked and ready.\n';
+				UI.log.textContent += 'ET-312 linked and ready.\n';
 			} catch (err) {
 				if ('NotFoundError' == err.name) {
-					log.textContent += 'No port was selected.\n';
+					UI.log.textContent += 'No port was selected.\n';
 				} else {
-					log.textContent += `Error linking ET-312: ${err.message}\n`;
+					UI.log.textContent += `Error linking ET-312: ${err.message}\n`;
 					await showAlert('noConnect', err);
 					STATE.et312 = null;
 				}
@@ -319,7 +319,7 @@ async function toggleState(conn, box) {
 	UI.controlsOnline.classList.toggle("disabled", !box);
 	UI.pnlSession.classList.toggle("connected", conn);
 	UI.iconBoxLink.classList.toggle("connected", box);
-	UI.iconLink.classList.toggle("connected", box & conn);
+	UI.iconLink.classList.toggle("connected", box && conn);
 }
 
 
@@ -610,7 +610,7 @@ function createPeerConnection(name) {
 			// the sinkId of other players as well so we reset those.
 			// This assumes sinkId is always set to default (either by a
 			// 'close' event or because no stream has been played yet.
-			UI.remoteVideo.play()
+			UI.remoteVideo.play();
 			//.then(UI.remoteVideo.setSinkId(i))
 		});
 
