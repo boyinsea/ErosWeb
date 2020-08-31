@@ -3,9 +3,9 @@
 ## Physically Connecting the ET-312
 The ET-312 power unit connects to a computer via
 
-|the "Link" port on the ET-312|a special cable|a RS-232 serial port on the computer (or adapter cable)|
+|the "Link" port on the ET-312|a special cable|an RS-232 serial port on the computer (or adapter cable)|
 |---|---|---|
-|![link port](assets/et312-link.png)| ![link cable](assets/link-cable.png)|![serial port](assets/serial-port.jpg) <hr/> ![USB-to-serial cable](assets/usb-to-serial.png)
+|![link port](assets/et312-link.png)| ![link cable](assets/link-cable.png)|![serial port](assets/serial-port.jpg) –or– ![USB-to-serial cable](assets/usb-to-serial.png)
 
 #### Connecting to the ET-312 "Link" Port
 
@@ -15,14 +15,14 @@ The cable used to connect the ET-312 to a computer has a female DB9 serial plug 
 * [EROSLINK SERIAL CABLE](https://erostek.com/collections/wiring/products/eroslink-serial-cable)
 
 #### Getting an RS-232 Serial Port
-RS-232 hardware is relatively rare on modern computers, so a USB-to-serial adapter can be useful.  [Amazon has a wide selection](https://www.amazon.com/s?k=rs232+to+usb&i=electronics); be sure to choose a product that is compatible with your operating system.
+RS-232 hardware is relatively rare on modern computers so a USB-to-serial adapter can be useful.  [Amazon has a wide selection](https://www.amazon.com/s?k=rs232+to+usb&i=electronics); be sure to choose a product that is compatible with your operating system.
 
 The following two products have been tested and are known to work with ErosWeb running on a MacBook Pro with MacOS Catalina.  The TRENDnet device has also been tested on PCs running Windows 10:
 
 * [Cable Matters USB C to Serial Adapter Cable](https://www.amazon.com/gp/product/B075GV6VL1/).  This fits directly into the "Thunderbolt 3" ports on the MacBook.
 * [TRENDnet USB to Serial 9-Pin Converter Cable](https://www.amazon.com/gp/product/B0007T27H8/).  This uses a standard USB 1.1 connector.
 
-Once the serial port hardware is installed and working according to the manufacturer's instructions (and drivers),  you will have a male "DB9" serial port attached to your computer.  It should automatically become available to Google Chrome or Edge and thus to ErosWeb.
+Once the serial port hardware is installed and working according to the manufacturer's instructions (and drivers), it should automatically become available to Google Chrome or Edge and thus to ErosWeb.  You then will have a male "DB9" serial port attached to your computer, ready to connect to the serial cable going into the ET-312.
 
 
 ### E-Stim Audio
@@ -44,8 +44,9 @@ E-stim audio playback and volume level is under the complete control of the Dom.
 These instructions pertain to the sub, who is responsible for technology set-up and presenting themselves for control by a Dom.
 
 #### One-time Setup
-1. Install the latest version of [Google Chrome](chrome) (if required), or make sure that [Microsoft Edge](edge) is up-to-date.
+1. Install the latest version of [Google Chrome][chrome] (if required), or make sure that [Microsoft Edge][edge] is up-to-date.
 2. Search for "Experimental Web Platform Features" on the `chrome://flags` or `edge://flags` page and make sure that feature is enabled.
+
 ![Experimental Web Platform Features](assets/experimental.png)
 
 #### Linking the ET-312
@@ -69,11 +70,11 @@ These instructions pertain to the sub, who is responsible for technology set-up 
 
 #### Sharing Audio and Video
 
-Simply click "SHARE AUDIO/VIDEO" to communicate with the Dom via video chat.  You can select input and output devices (e.g. a headset) by clicking on the Settings &#x2699; icon in the page header.
+Simply click "SHARE AUDIO/VIDEO" to communicate with the Dom via video chat.  You can select input and output devices (e.g. a headset) by clicking on the Settings &#x2699;  icon in the page header.
 
 #### Scene Limits
 
-You can set limits for the scene – including maximum power output – using the &#x1f6ab; icon in the page header.
+You can set limits for the scene – including maximum power output – using the &#x1f6ab;  icon in the page header.
 
 Be sure to click on the "close" icon in the upper-right corner of the Scene Limits sidebar to save any changes.
 

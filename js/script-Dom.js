@@ -297,30 +297,24 @@ async function clickConnect() {
 	} else {
 
 		// Tear down any connections in progress
-		// if (STATE.estimAudioConnection) {
-		// 	STATE.estimAudioConnection.close();
-		// 	STATE.estimAudioConnection = null;
-		// }
-
-		// Firefox doesn't forward a "close" event to the remote sub
-		// (PeerJS issue) so we ask the remote sub to close the
-		// connection for us.
-		if ("" == navigator.vendor) {
-			STATE.dataConn.send({ goodbye: true });
-			console.log("Manual 'goodbye' message sent.");
-			STATE.dataConn = null;
-			return;
-		}
-
 		if (STATE.dataConn) {
-			// Save and null the STATE pointer to the data connection;
-			// this prevents the UI from warning that the remote sub
-			// closed the connection during the close event handler.
-			const c = STATE.dataConn;
-			STATE.dataConn = null;
-			c.close();
+			if ("" == navigator.vendor) {
+				// Firefox doesn't forward a "close" event to the remote sub
+				// (PeerJS issue) so we ask the remote sub to close the
+				// connection for us.
+				STATE.dataConn.send({ goodbye: true });
+				console.log("Manual 'goodbye' message sent.");
+				STATE.dataConn = null;
+				return;
+			} else {
+				// Save and null the STATE pointer to the data connection;
+				// this prevents the UI from warning that the remote sub
+				// closed the connection during the close event handler.
+				const c = STATE.dataConn;
+				STATE.dataConn = null;
+				c.close();
+			}
 		}
-
 		toggleConnectionState(false);
 	}
 }

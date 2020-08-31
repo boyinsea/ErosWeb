@@ -447,6 +447,15 @@ function createPeerConnection(name) {
 		// This event occurs once, the very first time the connection is ready to use.
 		dataConnection.on('open', async function () {
 
+			// Only one Dom at a time can connect
+			if (STATE.dataConn) {
+				dataConnection.send({
+					welcome: { error: "Another Dom is already connected to this session." }
+				});
+				UI.log.textContent += `"${dataConnection.metadata.sceneName}" attempted to connect.\n`;
+				return;
+			}
+
 			// Validate PIN, if any
 			const PIN = UI.inputPIN.value;
 			if (PIN && (PIN != dataConnection.metadata.PIN)) {
@@ -472,7 +481,6 @@ function createPeerConnection(name) {
 			dataConnection.send({
 				welcome: true,
 				sceneName: UI.inputName.value,
-				// videoShare: Boolean(STATE.videoShare),
 				info: info,
 				limits: getLimits()
 			});
