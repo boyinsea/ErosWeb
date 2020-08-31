@@ -181,11 +181,11 @@ div:not(.disabled) .interactive span.uk-label:not([selected]) {
 }
 
 .uk-navbar-container.Dom {
-	background: linear-gradient(to right, rgb(39, 30, 128), #000);
+	background: linear-gradient(to right, rgb(28, 22, 109), #000);
 }
 
 .uk-navbar-container.sub {
-	background: linear-gradient(to right, #FFF, rgb(39, 30, 128));
+	background: linear-gradient(to right, #FFF, rgb(28, 22, 109));
 }
 
 .uk-grid>button {

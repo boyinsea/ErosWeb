@@ -1,48 +1,44 @@
-# Remote Control of the ET-312 eStim Box
+# Remote Control the ET-312 eStim Power Box
 
-ErosWeb delivers software remote control of the [ErosTek ET-312 e-stim power unit](https://erostek.com/products/et312b-digital-power-unit) using modern, web-based technology.  There is no software to download or install; Mac, Windows PCs, and iPad are supported.  ErosWeb is BDSM-informed and aims to serve the large installed base of ET-312 owners by enabling safe, sane, and consensual 1:1 play over the internet.  Or, put more simply, why let the E2B people have all the fun?
+ErosWeb is free, open-source software which provides remote control of the [ErosTek ET-312 e-stim power unit](https://erostek.com/products/et312b-digital-power-unit) using modern, web-based technology. Mac, Windows PCs, and iPad are supported.  There is no software to download or install.  ErosWeb is BDSM-informed and aims to serve the large community of ET-312 owners by enabling safe, sane, and consensual 1:1 play over the internet.  Or, put more simply, why let the E2B people have all the fun?
 
 ## Quickstart
-1. Dom and sub negotiate a scene via phone, chat, FaceTime, email, favorite app, etc.
-2. sub connects their ET-312 to a Mac or Windows PC, then navigates to the [sub page](/sub.html) using Google Chrome or Microsoft Edge to start a scene and "present" themselves for remote control.
-3. sub sends Dom a Session ID (to enter on the [Dom page](/Dom.html)) or a direct link to control the scene via Mac, Windows PC, or iPad.
+First, negotiate a scene via phone, chat, FaceTime, email, favorite app, etc.  Then...
+
+|subs – [*Present yourself for remote control*](/sub.html)|Doms – [*Remote-control a sub's ET-312*](/Dom.html)|
+|:--:|:--:|
+|![ET-312](/assets/et312.jpg) + ![sub mode](/assets/sub-image.png)|![Dom mode](/assets/Dom-image.png)|
+|[Connect](connect) your ET-312 to a Mac or Windows PC, then use [Google Chrome](chrome) or Microsoft Edge to open the [sub page](/sub.html) and start a scene.  Send the session link or Session ID and PIN to the Dom (or, for the adventurous, publish it online!)|Use a Mac, Windows PC, or iPad to control the scene via a link from the sub, or enter a Session ID and PIN on the [Dom page](/Dom.html). _Note that the Session ID is **cAsE-sEnSiTiVe**!_|
+
+:blue_book: Consult the [How-To Guide](/ErosWeb/documentation.html) for more information and detailed instructions.
 
 Features include:
 * Remote control of ET-312 mode, multi-adjust, and power levels.
-* In-scene voice and video interaction between Dom and sub.
-* Fail-safe protocols which attempt to account for internet connectivity issues and enable the sub to end the scene at any time.
+* In-scene voice and video commuication between Dom and sub.
 * Support for audio / audioStim input to the ET-312.
+* Fail-safe protocols which attempt to account for internet connectivity issues and enable the sub to end the scene at any time.
 
 ## Background
-An ErosWeb scene is potentially very much like an in-person scene involving the ET-312.  ErosWeb does not change the dynamics of scene negotiaton or play partner selection and vetting.  The Dom has full control of the box and can change modes and output levels, as well as feed audio into the box.  However, the sub (who is physically connected to the box being controlled) is ultimately responsible for setting up the scene by attaching the ET-312 to their computer, applying/inserting electrodes, and finally "presenting" themselves for control by a remote Dom via a web page.
+An ErosWeb scene is potentially very much like an in-person scene involving the ET-312.  ErosWeb does not change the dynamics of scene negotiaton or play partner selection and vetting.
 
-Once Dom and sub are ready to play, proceed as follows, or consult the [How-To Guide](/ErosWeb/documentation.html).
+The Dom has full control of the box and can change modes and output levels, as well as feed audio into the box.  However, the sub (who is physically connected to the box being controlled) is ultimately responsible initiating the scene by attaching the ET-312 to their computer, applying/inserting electrodes, and finally "presenting" themselves for control by a remote Dom.
 
-[chrome]: https://www.google.com/chrome/
+## Requirements
 
-### _subs_
-wishing to present themselves for remote control over the internet. (Yes, the sub has to do more work.)
+**sub** – _all_ of the following
+1. ET-312 power unit
+2. Mac or Windows PC (tablets/iPad are not supported for subs)
+3. [Appropriate hardware](connect) to connect the ET-312 to the computer.
+4. Latest version of [Google Chrome][chrome] or Microsoft Edge.
 
-**Requirements:**
-- ET-312 Box
-- Mac or Windows PC (tablets/iPad are not supported for subs)
-- Appropriate hardware to connect the ET-312 to the computer.  See the [Connectivity Tips](/ErosWeb/documentation.html#physically-connecting-the-et-312).
-- Latest version of [Google Chrome][chrome] or Microsoft Edge.  ErosWeb relies on the [Web Serial API](https://github.com/WICG/serial/blob/gh-pages/EXPLAINER.md) to control the ET-312.  As of August 2020, this feature is only implemented in Chrome and Edge.
+Chrome or Edge does not need to be the default browser.  However, ErosWeb sub mode relies on the [Web Serial API](https://github.com/WICG/serial/blob/gh-pages/EXPLAINER.md) to control the ET-312.  As of August 2020, this feature is only available in Chrome and Edge.
 
-*When ready, connect the ET-312 to the computer, yourself to the ET-312, then [start a scene](/sub.html).*
+**Dom** – _one_ of the following:
+* Mac running [the latest version of Chrome][chrome] (recommended), Safari, or Firefox.
+* Windows PC running [the latest version of Chrome][chrome] (recommended), Edge, or Firefox.
+* iPad running Safari.  Only the Safari browser is supported on iPad.
 
-### _Doms_
-wishing to remotely-control a sub.
-
-**Requirements** – one of the following:
-- Mac running [the latest version of Chrome][chrome] (recommended), Safari, or Firefox.
-- Windows PC running [the latest version of Chrome][chrome] (recommended), Edge, or Firefox.
-- iPad running Safari.  Only the Safari browser is supported on iPad.
-
-Once scene negotiation is complete, the sub can provide a direct link to remote control the scene.  Or, go to the [Dom page](/Dom.html) and enter the Session ID and optional PIN provided by the sub.  Note that the Session ID is case-sensitive.
-
-#### Notes
-* Running ErosWeb on a phone is not recommended because there is not enough screen real-estate for a usable UI.
+Running ErosWeb on a small-screen device like a phone is not recommended.
 
 ## Acknowledgments and Technical Details
 
@@ -52,4 +48,7 @@ ErosWeb is free open source software provided under the [Apache License](http://
 
 I credit [smealum](https://www.youtube.com/watch?v=CsQ2VWEfduM) and [JustTryingToPlease](https://www.recon.com/JustTryingToPlease) for inspiring me to dabble in teledildonics.  The ErosWeb feature set is modeled after eStim scenes performed by experienced players like [nnflyboy]( https://www.recon.com/nnflyboy) and [ncx180](https://www.recon.com/ncx180).
 
-Copyright &#169; 2020 [boyInSEA](https://www.recon.com/boyinsea) (also on [fetlife](https://fetlife.com/users/763523))
+Copyright &#169; 2020 [boyInSEA](mailto:boyinsea59@yahoo.com) (also on [fetlife](https://fetlife.com/users/763523) and [recon](https://www.recon.com/boyinsea))
+
+[chrome]: https://www.google.com/chrome/
+[connect]: /ErosWeb/documentation.html#physically-connecting-the-et-312
