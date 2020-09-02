@@ -296,24 +296,31 @@ class ET312Serial extends ET312Base {
 		let buffer = new Uint8Array(0);
 		try {
 			if (data) {
-				// console.log(`Writing: [${data}]; expecting ${length} bytes.`);
+				console.log(`Writing: [${data}]; expecting ${length} bytes.`);
 				await this._writer.write(new Uint8Array(data));
 			}
 
 			// Now read 'length' bytes from the stream
 			// Time out if a response is not received promptly; this indicates that the
 			// ET312 is not connected, turned on, or functioning properly.
+			let t;
 			while (buffer.length < length) {
 				const { value, done } = await Promise.race([
 					this._reader.read(),
-					new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 500))
+					new Promise((_, reject) => t = setTimeout(() => {
+						console.log(`Wrote: [${data}]; expecting ${length} bytes.`);
+						console.log(`Received ${buffer.length} bytes so far: [${buffer}]`);
+						reject(new Error('timeout'));
+					}, 1000))
 				]);
-				// console.log(`Read: ${value}`);
+				clearTimeout(t);
 
 				// Append any new data to existing buffer
 				if (value) buffer = Uint8Array.from([...buffer,...value]);
+
+				// console.log(`Read: ${value}; buffer: [${buffer}]`);
 			}
-			// console.log(`Received: ${buffer}`);
+
 			if (buffer.length > length) {
 				buffer = buffer.slice(-1 * length);
 				console.warn(`Excess serial data: was expecting ${length} bytes.  Returning [${buffer}].`);
@@ -322,6 +329,8 @@ class ET312Serial extends ET312Base {
 			// If key exchange has been completed and we are expecting more than 1 byte back,
 			// assume we have a checksum.
 			if (this._key && (length > 1)) verifyChecksum(buffer);
+
+			console.log(`Received OK: ${buffer}`);
 			return buffer;
 		} catch (err) {
 			if ('timeout' == err.message) err.buffer = buffer;
