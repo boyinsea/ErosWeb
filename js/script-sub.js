@@ -243,11 +243,12 @@ async function toggleState(conn, box) {
 			// Instantiate controller
 			if (STATE.et312 && !STATE.ctl) {
 				STATE.ctl = new ET312Controller(STATE.et312);
+
 				// Get initial box status and update UI elements
-				STATE.ctl.getInfo()
-					.then((info) => {
-						UI.powerLevel.highlightLevel(info.POWERLEVEL);
-					});
+				// const info = await STATE.ctl.getInfo();
+				// UI.powerLevel.highlightLevel(info.POWERLEVEL);
+				const powerLevel = await STATE.ctl.getValue(STATE.ctl.DEVICE.POWERLEVEL);
+				UI.powerLevel.highlightLevel(powerLevel);
 			}
 		}
 	}
@@ -282,14 +283,15 @@ async function toggleState(conn, box) {
 		if (box && STATE.ctl) {
 			const control = await STATE.ctl.hasControl();
 			if (control) {
-				UI.log.textContent += `${UI.domName.textContent} has relinquished control of the ET-312.\n`;
-
 				// Ramp down box.
 				await STATE.ctl.setValue(STATE.ctl.DEVICE.ADC4, [0]);
 				await STATE.ctl.setValue(STATE.ctl.DEVICE.ADC5, [0]);
 				await STATE.ctl.stop();
 
+				// Turn off remote control
 				const { info, _ } = await STATE.ctl.takeControl(false);
+
+				UI.log.textContent += `${UI.domName.textContent} has relinquished control of the ET-312.\n`;
 				UIkit.notification(
 					"ET-312 has ramped down and is under local control.", { pos: 'top-left', status: 'primary' }
 				);

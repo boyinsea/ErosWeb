@@ -296,7 +296,7 @@ class ET312Serial extends ET312Base {
 		let buffer = new Uint8Array(0);
 		try {
 			if (data) {
-				console.log(`Writing: [${data}]; expecting ${length} bytes.`);
+				// console.log(`Writing: [${data}]; expecting ${length} bytes.`);
 				await this._writer.write(new Uint8Array(data));
 			}
 
@@ -309,7 +309,7 @@ class ET312Serial extends ET312Base {
 					this._reader.read(),
 					new Promise((_, reject) => t = setTimeout(() => {
 						console.log(`Wrote: [${data}]; expecting ${length} bytes.`);
-						console.log(`Received ${buffer.length} bytes so far: [${buffer}]`);
+						console.log(`Received ${buffer.length} bytes so far: [${buffer}]; done: ${done}`);
 						reject(new Error('timeout'));
 					}, 1000))
 				]);
@@ -318,7 +318,7 @@ class ET312Serial extends ET312Base {
 				// Append any new data to existing buffer
 				if (value) buffer = Uint8Array.from([...buffer,...value]);
 
-				// console.log(`Read: ${value}; buffer: [${buffer}]`);
+				// console.log(`Read: ${value}; done: ${done}; buffer: [${buffer}]`);
 			}
 
 			if (buffer.length > length) {
@@ -330,7 +330,7 @@ class ET312Serial extends ET312Base {
 			// assume we have a checksum.
 			if (this._key && (length > 1)) verifyChecksum(buffer);
 
-			console.log(`Received OK: ${buffer}`);
+			// console.log(`Received OK: ${buffer}`);
 			return buffer;
 		} catch (err) {
 			if ('timeout' == err.message) err.buffer = buffer;

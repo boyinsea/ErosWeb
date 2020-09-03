@@ -78,7 +78,8 @@ class ET312Controller {
 			RAMPVALUE: { address: 0x409c, description: "Ramp Value Counter", heartbeat: true },
 			RAMPSELECT: { address: 0x40a3, description: "Ramp Select", heartbeat: true },
 			//		SCRATCH: { address: 0x4093, description: "Overwritten with 0 when a program starts" },
-			MAVALUE: { address: 0x420d, description: "Current Multi-Adjust value" },
+			BATTERYLEVEL: { address: 0x4203, description: "Battery Level %" },
+			MAVALUE: { address: 0x420d, description: "Multi-Adjust value" },
 			MALOW: { address: 0x4086, description: "Low end of Multi-Adjust range" },
 			MAHIGH: { address: 0x4087, description: "High end of Multi-Adjust range" },
 			POWERLEVEL: { address: 0x41f4, description: "Power Level" }, // 1 Low - 3 High
@@ -99,7 +100,9 @@ class ET312Controller {
 			A_FREQUENCY: { address: 0x41fc, description: "Advanced Parameter: Frequency" },
 			A_EFFECT: { address: 0x41fd, description: "Advanced Parameter: Effect" },
 			A_WIDTH: { address: 0x41fe, description: "Advanced Parameter: Width" },
-			A_PACE: { address: 0x41ff, description: "Advanced Parameter: Pace" }
+			A_PACE: { address: 0x41ff, description: "Advanced Parameter: Pace" },
+			// 0x01 = Battery available; 0x02 = Power supply available
+			POWERSTATUS: { address: 0x4215, description: "Power Status Bits" }
 		};
 
 		/*
@@ -168,7 +171,10 @@ class ET312Controller {
 
 	async getValue(property) {
 		if ('object' != typeof (property)) property = this.DEVICE[property];
-		return await this._et312.readAddress(property.address);
+		console.log(`Read ${JSON.stringify(property)}`);
+		const v = await this._et312.readAddress(property.address);
+		console.log(`Value: ${v}`);
+		return v;
 	}
 
 	// Write a value to the indicated address, which
@@ -184,7 +190,6 @@ class ET312Controller {
 		const retVal = await this._et312.writeAddress(address, value);
 		return ((retVal instanceof Uint8Array) && (6 == retVal[0]));
 	}
-	// setValue = this.setValue.bind(this);
 
 	async getMode() {
 		const mode = await this._et312.readMode();
@@ -235,7 +240,6 @@ class ET312Controller {
 
 		return result;
 	}
-	// setMode = this.setMode.bind(this);
 
 	//	Set Power Level 1-3 (0x6b = low, etc.)
 	async setPowerLevel(newLevel) {
@@ -246,7 +250,6 @@ class ET312Controller {
 		console.dir(result);
 		return {POWERLEVEL: result};
 	}
-	// setPowerLevel = this.setPowerLevel.bind(this);
 
 	// Immediately stop stim output by changing to a non-existent mode
 	async stop() {
@@ -254,7 +257,6 @@ class ET312Controller {
 		this.display_mode_name('-PAUSED-');
 		return result;
 	}
-	// stop = this.stop.bind(this);
 
 	// Clear the mode name in the display
 	async display_clear_mode_name() {
@@ -310,13 +312,12 @@ class ET312Controller {
 	async takeControl(status) {
 		console.log(`takeControl: ${status}`);
 		let flags = await this.getValue(this.DEVICE.SYSTEMFLAGS);
-		console.log(`current flags: ${flags}`);
 		let newFlags = flags;
 		if (status)
 			newFlags |= 0x01;
 		else
 			newFlags &= ~0x01;
-		console.log(`updated flags: ${newFlags}`);
+		console.log(`current flags: ${flags} => updated flags: ${newFlags}`);
 
 		if (newFlags != flags) {
 			await this.setValue(this.DEVICE.SYSTEMFLAGS, [newFlags]);
