@@ -7,14 +7,16 @@ The ET-312 power unit connects to a computer via
 |---|---|---|
 |![link port](assets/et312-link.png)| ![link cable](assets/link-cable.png)|![serial port](assets/serial-port.jpg) –or– ![USB-to-serial cable](assets/usb-to-serial.png)
 
-#### Connecting to the ET-312 "Link" Port
+All ET-312s have a link port; you may need to buy a Link Port cable and a USB-to-Serial adapter.
+
+#### 1. "Link" Port Cable
 
 The cable used to connect the ET-312 to a computer has a female DB9 serial plug on one end and a 3.5mm stereo plug on the other.  This cable is readily available from ErosTek and other sources:
 
 * [Relper Lineso DB9Pin Female to DC3.5mm Serial Cable](https://www.amazon.com/gp/product/B06Y98F6D5)
 * [EROSLINK SERIAL CABLE](https://erostek.com/collections/wiring/products/eroslink-serial-cable)
 
-#### Getting an RS-232 Serial Port
+#### 2. Serial Port / RS-232 Adapter
 RS-232 hardware is relatively rare on modern computers so a USB-to-serial adapter can be useful.  [Amazon has a wide selection](https://www.amazon.com/s?k=rs232+to+usb&i=electronics); be sure to choose a product that is compatible with your operating system.
 
 The following two products have been tested and are known to work with ErosWeb running on a MacBook Pro with MacOS Catalina.  The TRENDnet device has also been tested on PCs running Windows 10:
@@ -22,7 +24,7 @@ The following two products have been tested and are known to work with ErosWeb r
 * [Cable Matters USB C to Serial Adapter Cable](https://www.amazon.com/gp/product/B075GV6VL1/).  This fits directly into the "Thunderbolt 3" ports on the MacBook.
 * [TRENDnet USB to Serial 9-Pin Converter Cable](https://www.amazon.com/gp/product/B0007T27H8/).  This uses a standard USB 1.1 connector.
 
-Once the serial port hardware is installed and working according to the manufacturer's instructions (and drivers), it should automatically become available to Google Chrome or Edge and thus to ErosWeb.  You then will have a male "DB9" serial port attached to your computer, ready to connect to the serial cable going into the ET-312.
+Once the serial port hardware is installed and working according to the manufacturer's instructions (and drivers), it should automatically become available to Google Chrome or Edge and thus to ErosWeb.  You then will have a male "DB9" serial port attached to your computer, ready to connect to the cable going into the ET-312 Link port.
 
 
 ### E-Stim Audio
@@ -119,7 +121,7 @@ _More Coming Soon!_
 
 You need to enable iOS-specific functionality for the ErosWeb page.  Click on the "<span style="font-size: 75%">A</span>A" icon in the Safari address bar and choose "Request Mobile Website."
 
-The output volume on iOS devices like iPad can only be controlled by device buttons or operating system controls.  Changing the volume level in this way will change the volume for You (the Dom), but won't affect the sub.  The "mobile version" of the ErosWeb page detects this situation and correctly forwards volume change commands to the sub when you change the volume level slide on the page, even though Your local volume doesn't change.
+The output volume on iOS devices like iPad can only be controlled by device buttons or operating system controls.  Changing the volume level in this way will change the volume for You (the Dom), but won't affect the sub.  The "mobile version" of the ErosWeb page detects this situation and correctly forwards volume change commands to the sub when you change the volume level control on the page, even though Your local volume doesn't change.
 
 [chrome]: https://www.google.com/chrome/
 [edge]: https://support.microsoft.com/en-us/help/4501095/download-the-new-microsoft-edge-based-on-chromium
