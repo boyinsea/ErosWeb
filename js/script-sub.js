@@ -15,7 +15,8 @@ const STATE = {
 	peer: null,
 	dataConn: null,
 	mediaConnection: null,
-	videoShare: null
+	videoShare: null,
+	debug: false
 };
 
 const UI = {
@@ -69,10 +70,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Capture "timeout" and similar errors when talking to ET-312
 	window.addEventListener("unhandledrejection", async function (e) {
-		console.warn(e.reason);
+		console.dir(e);
+		// debugger;
 
 		if (("Error: timeout" == e.reason) ||
-			(("NetworkError" == e.reason.name) && ("The device has been lost." == e.reason.message))) {
+			(("NetworkError" == e.reason.name) && ("The device has been lost." == e.reason.message)) ||
+			("BreakError" == e.reason.name)) {
 
 			e.preventDefault();
 			UI.log.textContent += 'Error: Connection to ET-312 reset.\n';
@@ -128,6 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	UI.notSupported.hidden = true;
 	UI.butConnect.addEventListener("click", clickConnect);
 	UI.butStatus.addEventListener("click", clickStatus);
+	UI.butTest.addEventListener("click", clickTest);
 	UI.butPresent.addEventListener("click", clickPresent);
 	UI.butShare.addEventListener("click", clickShare);
 	UI.butLinkCopy.addEventListener("click", copyLink);
@@ -141,6 +145,9 @@ document.addEventListener("DOMContentLoaded", () => {
 	});
 
 	// Restore page defaults
+	const params = new URLSearchParams(window.location.search);
+	STATE.debug = params.has('debug');
+
 	UI.inputName.value = localStorage.getItem('sceneName');
 	let limitMaxLevel = Number(localStorage.getItem('limitMaxLevel'));
 	if (0 == limitMaxLevel) limitMaxLevel = 99;
@@ -252,6 +259,7 @@ async function toggleState(conn, box) {
 			}
 		}
 	}
+	box = Boolean(STATE.et312);
 
 	if (conn) {
 
@@ -263,7 +271,7 @@ async function toggleState(conn, box) {
 			);
 			STATE.dataConn.send({ info: info });
 
-			if (!STATE.heartbeat) {
+			if (!STATE.heartbeat && !STATE.debug) {
 				// Query current box status & update Dom every 5 seconds.
 				// (Skip the update if less than 1 second has elapsed since status
 				// information was last retrieved.)
@@ -314,10 +322,9 @@ async function toggleState(conn, box) {
 			STATE.dataConn = null;
 		}
 	}
+	conn = Boolean(conn); //STATE.dataConn);
 
 	// UI configuration net of any changes
-	box = Boolean(STATE.et312);
-	conn = Boolean(conn); //STATE.dataConn);
 	UI.controlsOnline.classList.toggle("disabled", !box);
 	UI.pnlSession.classList.toggle("connected", conn);
 	UI.iconBoxLink.classList.toggle("connected", box);
@@ -326,20 +333,27 @@ async function toggleState(conn, box) {
 
 
 // Utility function to display the status of the connected box.
-function clickStatus() {
+async function clickStatus() {
+
 	if (STATE.ctl) {
 		UI.log.textContent = '>>> ET-312 Status >>>\n';
-		STATE.ctl.getInfo()
-			.then((info) => {
-				for (const property in STATE.ctl.DEVICE) {
-					UI.log.textContent += `${STATE.ctl.DEVICE[property].description}: ${info[property]}\n`;
-				}
-			});
+		const info = await STATE.ctl.getInfo();
+		for (const property in info) {
+			//console.log(property);
+			const pd = STATE.ctl.DEVICE[property];
+			if (pd) UI.log.textContent += `${pd.description}: ${info[property]}\n`;
+		}
 	} else {
 		UI.log.textContent += 'Not connected to ET-312.\n';
 	}
 }
+	async function clickTest() {
 
+	//for (let i = 0; i < 100; i++) {
+		await STATE.et312.handshake();
+		//const n = await STATE.ctl.getValue("MODENUM");
+	// }
+}
 
 /*
 	PRESENT CONTROL TO / WITHHOLD CONTROL FROM REMOTE USER
@@ -376,6 +390,10 @@ async function clickPresent() {
 		// Currently presenting -- end scene if any and go offline
 		await toggleState(false, STATE.ctl);
 		toggleUIPresent(false);
+
+		// End "keepalive" requests
+		if (STATE.keepalive) clearInterval(STATE.keepalive);
+
 		STATE.peer.destroy();
 		STATE.peer = null;
 	}
@@ -417,12 +435,6 @@ function createPeerConnection(name) {
 
 	UI.log.textContent += `Preparing to go online...\n`;
 	const P = new Peer(sessionId, {
-		/*
-		host: document.location.host,
-		port: 9000,
-		path: '/peerjs',
-		secure: true
-		*/
 		host: 'erosweb-peerjs-server.herokuapp.com',
 		port: 443,
 		secure: true
@@ -431,6 +443,12 @@ function createPeerConnection(name) {
 	P.on('open', () => {
 		UI.log.textContent += `Ready to accept a remote connection.\n`;
 		toggleUIPresent(true);
+
+		// Ping the peerjs server once every 20 minutes while presenting;
+		// this keeps the server from idling and interrupting the connection.
+		STATE.keepalive = setInterval(() => {
+			fetch(`https://${P.options.host}/`);
+		}, 1000 * 60 * 20);
 	});
 
 	P.on('error', (err) => {
@@ -454,6 +472,7 @@ function createPeerConnection(name) {
 				dataConnection.send({
 					welcome: { error: "Another Dom is already connected to this session." }
 				});
+				dataConnection.close();
 				UI.log.textContent += `"${dataConnection.metadata.sceneName}" attempted to connect.\n`;
 				return;
 			}
@@ -489,6 +508,7 @@ function createPeerConnection(name) {
 
 			toggleState(true, STATE.ctl); // Toggle app into "connected" mode
 			STATE.dataConn = dataConnection; // Save data connection object
+			// STATE.peer.disconnect();	// Eliminate dependency on the server staying alive
 		});
 
 		// This event occurs every time a data message is received
@@ -501,6 +521,7 @@ function createPeerConnection(name) {
 				if ('setMode' == prop) doCommand(STATE.ctl.setMode, obj);
 				if ('setLevel' == prop) doCommand(STATE.ctl.setPowerLevel, obj);
 				if ('stop' == prop) doCommand(STATE.ctl.stop);
+				if ('startRamp' == prop) doCommand(STATE.ctl.startRamp);
 				if ('setValue' == prop) doCommand(STATE.ctl.setValue, obj.address, obj.value);
 
 				// Video Sharing
@@ -510,9 +531,10 @@ function createPeerConnection(name) {
 				// to our "welcome" message (instead of calling).
 				// If we are NOT presently sharing video, the message is ignored.
 				if (('videoShare' == prop) && !obj && STATE.videoShare) {
+					// if (STATE.peer.disconnected) STATE.peer.reconnect();
 					STATE.mediaConnection = P.call(
 						STATE.dataConn.peer,
-						STATE.videoShare, { sdpTransform: webRTChelper.sdpAudio });
+						STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice });
 				}
 
 				// Estim Audio
@@ -521,8 +543,8 @@ function createPeerConnection(name) {
 				// }
 				if ('estimAudio' == prop) handleEstimAudio(obj);
 
-				// Manual connection close; works around a PeerJS issue
-				// when Dom is running Firefox.
+				// Manual connection close initiated by Dom;
+				// works around a PeerJS issue when Dom is running Firefox.
 				if (('goodbye' == prop) && obj) dataConnection.close();
 			}
 		});
@@ -533,11 +555,11 @@ function createPeerConnection(name) {
 				UIkit.notification(`<b>${UI.domName.textContent}</b> disconnected.`, { pos: 'top-left', status: 'primary' });
 				STATE.dataConn = null;
 			}
-			// if (STATE.estimAudioConnection) {
-			// 	STATE.estimAudioConnection.close();
-			// 	STATE.estimAudioConnection = null;
-			// }
 			toggleState(false, STATE.ctl);
+
+			// Reconnect to the peer server so that another Dom could potentially connect.
+			// if (STATE.peer.disconnected) STATE.peer.reconnect();
+
 		});
 
 		dataConnection.on('error', (err) => {
@@ -547,7 +569,7 @@ function createPeerConnection(name) {
 
 	});
 
-	// This happens when Dom calls us with either audio/video to share or eStim audio
+	// This happens when Dom calls us with audio/video to share
 	P.on('call', (mediaConnection) => {
 
 		console.log('Call!  incoming mediaConnection:');
@@ -737,6 +759,7 @@ async function clickShare() {
 					STATE.dataConn.send({ videoShare: true });
 				} else {
 					// No connection yet; initiate call.
+					// if (STATE.peer.disconnected) STATE.peer.reconnect();
 					STATE.mediaConnection = STATE.peer.call(
 						STATE.dataConn.peer,
 						STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }

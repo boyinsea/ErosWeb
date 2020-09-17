@@ -62,6 +62,8 @@ class ET312Controller {
 		// This structure maps ET-312 memory addresses to friendly names.
 		// Properties tagged with "heartbeat: true" are included when sending a snapshot
 		// update of box status to a remote controller.
+
+		// TODO: Flag some of these as "readonly=true" as appropriate.
 		this.DEVICE = {
 			SYSTEMFLAGS: { address: 0x400f, description: "System Flags", heartbeat: true },
 			//		ADC0: { address: 0x4060, description: "Output Current Sense" },
@@ -78,7 +80,7 @@ class ET312Controller {
 			RAMPVALUE: { address: 0x409c, description: "Ramp Value Counter", heartbeat: true },
 			RAMPSELECT: { address: 0x40a3, description: "Ramp Select", heartbeat: true },
 			//		SCRATCH: { address: 0x4093, description: "Overwritten with 0 when a program starts" },
-			BATTERYLEVEL: { address: 0x4203, description: "Battery Level %" },
+			BATTERYLEVEL: { address: 0x4203, description: "Battery Level (0-255)" },
 			MAVALUE: { address: 0x420d, description: "Multi-Adjust value" },
 			MALOW: { address: 0x4086, description: "Low end of Multi-Adjust range" },
 			MAHIGH: { address: 0x4087, description: "High end of Multi-Adjust range" },
@@ -147,7 +149,7 @@ class ET312Controller {
 	//		elapsed since the last heartbeat request, otherwise returns
 	//		NULL.
 	async getInfo(heartbeat) {
-		let result = {heartbeat: Boolean(heartbeat)};
+		let result = { heartbeat: Boolean(heartbeat) };
 		if ('number' == typeof (heartbeat)) {
 			if ((Date.now() - this.lastHeartbeat) < heartbeat) return null;
 		}
@@ -171,7 +173,7 @@ class ET312Controller {
 
 	async getValue(property) {
 		if ('object' != typeof (property)) property = this.DEVICE[property];
-		console.log(`Read ${JSON.stringify(property)}`);
+		console.log(`getValue ${JSON.stringify(property)}`);
 		const v = await this._et312.readAddress(property.address);
 		console.log(`Value: ${v}`);
 		return v;
@@ -182,6 +184,8 @@ class ET312Controller {
 	// address.
 	// Returns true if the value was written successfully
 	async setValue(property, value) {
+		console.log(`setValue ${JSON.stringify(property)} = ${value}`);
+
 		let address;
 		if ('object' == typeof (property)) address = property.address;
 		else if ('number' == typeof (property)) address = property;
@@ -242,13 +246,31 @@ class ET312Controller {
 	}
 
 	//	Set Power Level 1-3 (0x6b = low, etc.)
+	// 	This must be done with a box command; the power level cannot
+	//	be updated directly.
+	//	Box must be running a program (mode), otherwise an error occurs.
 	async setPowerLevel(newLevel) {
+		const mode = await this.getValue(this.DEVICE.MODENUM);
+		if (mode == 0) {
+			console.warn('Bad state for setting power level.');
+			return null;
+		}
 		console.log(`Setting power level ${newLevel}`);
 		let result = await this._et312.writeAddress(0x4078, [0x6a + newLevel]);
 		result = await this.executeCommands([0x06]);
 		result = await this.getValue(this.DEVICE.POWERLEVEL);
-		console.dir(result);
-		return {POWERLEVEL: result};
+		console.log(result);
+		return { POWERLEVEL: result };
+	}
+
+	// Invoke box function to start power ramp
+	async startRamp() {
+		await this.executeCommands([0x21]);
+		const result = {
+			RAMPSELECT: await this.getValue(this.DEVICE.RAMPSELECT),
+			RAMPVALUE: await this.getValue(this.DEVICE.RAMPVALUE)
+		};
+		return result;
 	}
 
 	// Immediately stop stim output by changing to a non-existent mode
@@ -331,14 +353,14 @@ class ET312Controller {
 		// what is going on.  Do not wait for this to complete because display
 		// writes take a long time.
 		let P;
-		if (status)
-			P = this.display_write("\x7eErosWeb Control", 1, 0);
-		else
-			P = this.display_write("\x7eLocal Control".padEnd(16), 1, 0);
+		// if (status)
+		// 	P = this.display_write("\x7eErosWeb Control", 1, 0);
+		// else
+		// 	P = this.display_write("\x7eLocal Control".padEnd(16), 1, 0);
 
 		console.log(info);
-		console.log(P);
-		return {info, P};
+		// console.log(P);
+		return { info, P };
 	}
 }
 

@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	// forms (since there is no server to submit to anyways...)
 	UI.controls.addEventListener("submit", (e) => { e.preventDefault(); });
 
+	// Pressing "Enter" while Session ID or PIN is focused automatically Connects.
 	document.addEventListener('keydown', (k) => {
 		const l = document.activeElement;
 		if (("Enter" == k.code) && ((l == UI.inputSId) || (l == UI.inputPIN)))
@@ -109,6 +110,25 @@ document.addEventListener("DOMContentLoaded", () => {
 				STATE.ctl.setLevel(newLevel);
 			}
 		}
+	});
+
+	UI.inputRampLevel.addEventListener("change", (e) => {
+		UI.btnRamp.innerText = `START (${UI.inputRampLevel.value}%)`;
+		if (e.isTrusted)
+			STATE.ctl.setValue(
+				STATE.ctl.DEVICE.A_RAMPLEVEL,
+				[155 + parseInt(e.currentTarget.value)]);
+	});
+
+	UI.inputRampTime.addEventListener("change", (e) => {
+		STATE.ctl.setValue(
+			STATE.ctl.DEVICE.A_RAMPTIME,
+			[parseInt(e.currentTarget.value)]);
+	});
+
+	UI.btnRamp.addEventListener("click", (e) => {
+		e.preventDefault();
+		STATE.ctl.startRamp();
 	});
 
 	configureSlider(UI.levelMultiAdjust, true); // Invert MA range values
@@ -364,7 +384,20 @@ function refreshUI(info) {
 		MAVALUE: (v) => UI.levelMultiAdjust.setValue(v),
 		ADC4: (v) => UI.levelA.setValue(Math.round((v * 99) / 255)),
 		ADC5: (v) => UI.levelB.setValue(Math.round((v / 255) * 99)),
-		POWERLEVEL: (v) => UI.powerLevel.highlightLevel(v)
+		POWERLEVEL: (v) => UI.powerLevel.highlightLevel(v),
+		A_RAMPLEVEL: (v) => {
+			const r = v - 155;
+			if (parseInt(UI.inputRampLevel.value) != r) {
+				UI.inputRampLevel.value = r;
+				UI.inputRampLevel.dispatchEvent(new Event('change'));
+			}
+		},
+		A_RAMPTIME: (v) => { UI.inputRampTime.value = v; },
+		RAMPVALUE: (v) => { UI.rampLevel.innerText = `${v - 155}%`; },
+		RAMPSELECT: (v) => {
+			UI.btnRamp.hidden = (v == 39);
+			UI.rampLevel.hidden = (v == 1);
+		}
 
 		// TODO: Audio levels?
 
@@ -456,6 +489,9 @@ function createPeerConnection(destId) {
 						// If any eStimAudio is active, send it to the sub now
 						if (UI.localAudio.readyState > 0) UI.localAudio.dispatchEvent(new Event('loadedmetadata'));
 
+						// Once setup is complete, disconnect from the peer server
+						// STATE.peer.disconnect();
+
 					} else if (false === obj) {
 						// welcome: false means the remote sub wants to close the connection.
 						if (STATE.dataConn) STATE.dataConn.close();
@@ -531,6 +567,7 @@ function createPeerConnection(destId) {
 						// Call back so sub can reply with their video stream.
 						// TODO: Consolidate code; this is the same as reply to 'welcome'
 						console.log('Calling sub');
+						// if (STATE.peer.disconnected) STATE.peer.reconnect();
 						const videoConnection = P.call(
 							dataConn.peer,
 							STATE.videoShare);
@@ -627,7 +664,9 @@ function setupMediaConnection(conn) {
 
 	STATE.mediaConnection.on('stream', (stream) => {
 		console.log(`Got stream: ${stream}`)
+		// Sometimes the event fires twice for the same stream (in error); ignore
 		if (UI.remoteVideo.srcObject && (UI.remoteVideo.srcObject.id == stream.id)) return;
+
 		UI.remoteVideo.nextElementSibling.hidden = true; // Hide overlay
 		UI.remoteVideo.srcObject = stream;
 		UI.butUnmute.hidden = !UI.remoteVideo.muted;
@@ -814,6 +853,8 @@ function configureSlider(sliderDiv, inverse) {
 	};
 	sliderDiv.setValue = (newValue) => {
 		range.value = (inverse) ? parseInt(range.max) - newValue + parseInt(range.min) : newValue;
+		range.was = parseInt(range.value);
+		console.log(`setValue: ${newValue} | ${range}`);
 		range.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
 	};
 	sliderDiv.getValue = () => {
@@ -827,7 +868,31 @@ function configureSlider(sliderDiv, inverse) {
 
 	const badge = sliderDiv.getElementsByClassName("uk-badge")[0];
 	range.addEventListener("input", (e) => {
-		if (range.value > range.limit) {
+
+		// Any click changes the value by at most one step.
+		/*
+		.on('input', function () {
+    		var data = $(this).data();
+		    $(this).data({
+		        was: this.value = +data.was + (this.value > data.was || -1)
+		    });
+		}
+		*/
+
+		// Limit changes made by user input (e.g., clicking or dragging) to
+		// at most one step at a time.  This should NOT apply to changes
+		// made programatically (e.g., to set the slider to a box value).
+		if (e.isTrusted) {
+			const v = parseInt(range.value);
+			let was = parseInt(range.was);
+			console.log(`Before: Range value: ${v} (was: ${was})`);
+			range.value = was + (v > was || -1);
+			range.was = +range.value;
+			console.log(`After: Range value: ${range.value}`);
+		}
+
+		// Enforce maximum limit
+		if (range.limit && (range.value > range.limit)) {
 			console.log(`Value: ${range.value}; Limit: ${range.limit} [${sliderDiv}]`);
 			e.stopPropagation();
 			e.preventDefault();

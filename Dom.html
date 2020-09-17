@@ -55,10 +55,11 @@
 			</div>
 
 			<div uk-grid class="uk-grid-collapse" uk-height-viewport="offset-top: true">
+				<!-- <a href="#pnlAdvanced" uk-toggle uk-tooltip="Advanced Controls">Advanced</a> -->
 
 				<form id="controls" class="uk-card uk-card-small uk-card-body uk-form-horizontal uk-width-2-5 uk-padding-remove-right uk-padding-remove-top">
 
-					<div id="controlsOnline">
+					<div id="controlsOnline" class="uk-margin-small-bottom">
 
 						<div id="modeArray" uk-grid class="uk-grid-collapse uk-child-width-1-3 uk-grid uk-margin-small-bottom">
 							<button class="uk-button uk-padding-remove uk-button-danger" value="0">Stop!</button>
@@ -108,6 +109,16 @@
 							</div>
 						</div>
 
+						<div class="uk-display-inline-block uk-width-1-1 uk-text-middle">
+							<a href="#pnlAdvanced" uk-toggle class="uk-text-bolder uk-text-primary" uk-tooltip="Advanced Controls" uk-icon="icon: chevron-right">Advanced</a>
+
+							<div class="uk-align-right uk-margin-remove-bottom">
+								<span>Ramp</span>
+								<button id="btnRamp" class="uk-button uk-button-default uk-button-small uk-form-width-xsmall">Start (100%)</button>
+								<span id="rampLevel" class="uk-text-emphasis uk-text-bolder" hidden>100%</span>
+							</div>
+						</div>
+
 						<!-- Analog-to-digital controls on the box -->
 						<div id="levelMultiAdjust" class="uk-grid-collapse uk-grid" uk-grid>
 							<div class="uk-width-1-5">
@@ -117,7 +128,7 @@
 							<input class="uk-range uk-width-expand" type="range" />
 							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
 						</div>
-						<div id="levelA" class="uk-margin-small-top uk-grid-collapse uk-grid" uk-grid>
+						<div id="levelA" class="uk-grid-collapse uk-grid" uk-grid>
 							<div class="uk-width-1-5">
 								<label class="uk-form-label" for="levelA">Level A<span class="uk-badge uk-margin-small-left"></span></label>
 							</div>
@@ -125,24 +136,13 @@
 							<input class="uk-range uk-width-expand" type="range" min="0" max="99" />
 							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
 						</div>
-						<div id="levelB" class="uk-margin-small-top uk-grid-collapse uk-grid" uk-grid>
+						<div id="levelB" class=" uk-grid-collapse uk-grid" uk-grid>
 							<div class="uk-width-1-5">
 								<label class="uk-form-label" for="levelB">Level B<span class="uk-badge uk-margin-small-left"></span></label>
 							</div>
 							<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
 							<input class="uk-range uk-width-expand" type="range" min="0" max="99" />
 							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
-						</div>
-
-						<div id="powerLevel" class="uk-margin-small uk-grid-collapse uk-grid uk-text-middle" uk-grid>
-							<div class="uk-width-1-5">
-								<label class="uk-form-label uk-margin-remove">Power Level</label>
-							</div>
-							<div>
-								<span class="uk-label uk-label-success" value="1">Low</span>
-								<span class="uk-label uk-label-warning" value="2">Normal</span>
-								<span class="uk-label uk-label-danger" value="3">High</span>
-							</div>
 						</div>
 
 					</div>
@@ -183,136 +183,165 @@
 						<span id="iconLink" class="uk-icon" uk-icon="bolt" uk-tooltip="Indicates that You have control of the remote sub's ET-312."></span>
 						<span id="verb" class="uk-text-middle">Connected to</span>
 						<span id="subName" class="uk-text-middle uk-text-bold uk-text-secondary"></span>
-						<a id="butUnmute" href="" class="uk-margin-small-left uk-text-middle uk-text-small" hidden="true">Click to Un-mute</a>
 
 					</div>
 
 					<div class="uk-inline uk-width-1-1 uk-box-shadow-medium">
 						<video id="remoteVideo" uk-height-viewport="offset-top: true; offset-bottom: true">
-							Sorry, your browser doesn't support embedded videos.
 						</video>
 						<div class="uk-overlay uk-overlay-default uk-position-center">
 							<span class="uk-icon-link" uk-icon="icon: user; ratio: 4"></span>
 						</div>
+						<div id="butUnmute" class="uk-overlay uk-overlay-primary uk-position-center" hidden="true">
+							<p class="uk-margin-small-left uk-text-lead">Click to Un-mute</p>
+						</div>
 					</div>
 
-					<!-- <pre id="log" class="uk-overflow-auto"></pre> -->
-
 				</div>
-
 			</div>
 		</div>
 	</div>
 
-	<!-- Slide-in area for adjusting audio and video settings -->
-	<div id="pnlConfigAV" uk-offcanvas="overlay: true">
+	<!-- Slide-in area for Advanced controls -->
+	<div id="pnlAdvanced" uk-offcanvas>
+
+		<!-- <div id="pnlAdvanced" uk-offcanvas="flip: false"> -->
 		<div class="uk-offcanvas-bar">
 			<button class="uk-offcanvas-close" type="button" uk-close></button>
 
-			<h3>Communications Settings</h3>
-			<p class="uk-text-emphasis uk-margin-remove-bottom">Audio Output</p>
-			<div id="localAudioDest">
-				<div uk-form-custom="target: > * > span:last-child">
-					<select>
-					</select>
-					<span class="uk-link">
-						<span uk-icon="icon: receiver"></span>
-						<span></span>
-					</span>
-				</div>
-			</div>
-			<span class="uk-label click">Test</span>
+			<h3>Advanced Settings</h3>
 
-			<p class="uk-text-emphasis uk-margin-remove-bottom">Camera</p>
-			<div id="cameraInput">
-				<div uk-form-custom="target: > * > span:last-child">
-					<select>
-					</select>
-					<span class="uk-link">
-						<span uk-icon="icon: video-camera"></span>
-						<span></span>
-					</span>
+			<h4 class="uk-text-emphasis uk-margin-remove-bottom">Power Level</h4>
+			<div id="powerLevel" class="uk-margin-small uk-grid-collapse uk-grid uk-text-middle" uk-grid>
+				<div>
+					<span class="uk-label uk-label-success" value="1">Low</span>
+					<span class="uk-label uk-label-warning" value="2">Normal</span>
+					<span class="uk-label uk-label-danger" value="3">High</span>
 				</div>
 			</div>
 
-			<p class="uk-text-emphasis uk-margin-remove-bottom">Microphone</p>
-			<div id="microphoneInput">
-				<div uk-form-custom="target: > * > span:last-child">
-					<select>
-					</select>
-					<span class="uk-link">
-						<span uk-icon="icon: microphone"></span>
-						<span></span>
-					</span>
-				</div>
+			<h4 class="uk-text-emphasis uk-margin-remove-bottom">Ramp</h4>
+			<div class="uk-margin-small uk-grid-collapse uk-grid uk-flex-middle uk-grid-match" uk-grid>
+				<label class="uk-form-label uk-width-1-3" for="inputRampLevel">Start Level</label>
+				<input id="inputRampLevel" class="uk-input uk-form-small uk-width-1-4" type="number" min="50" max="90" step="10" maxlength="2">
+				<span class="uk-margin-small-left">/ 100%</span>
 			</div>
-			<span class="uk-label click">Test</span>
-			<progress id="microphoneLevel" value="0" max="100" hidden />
-
-		</div>
-	</div>
-
-	<!-- Modal Dialogs -->
-	<div class="alert">
-		<div class="connectionRefused">
-			<b class="uk-text-warning">Connection Refused</b>
-			<ul>
-				<li>Verify the PIN or URL for this session with the sub.</li>
-				<li>Check that the PIN is entered correctly.</li>
-			</ul>
+			<div class="uk-margin-small uk-grid-collapse uk-grid uk-flex-middle uk-grid-match" uk-grid>
+				<label class="uk-form-label uk-width-1-3" for="inputRampTime">Time Interval</label>
+				<input id="inputRampTime" class="uk-input uk-form-small uk-width-1-4" type="number" min="1" max="120" step="1" maxlength="3">
+				<span class="uk-margin-small-left">seconds</span>
+			</div>
 		</div>
 
-		<div class="connectionFailed">
-			<b class="uk-text-danger">Connection Failed</b>
-			<ul>
-				<li>Verify the URL for this session with the sub.</li>
-				<li>Check that the Session ID is correct.</li>
-				<li>Make sure the sub is still presenting themselves for control by a remote user.</li>
-				<li>Try connecting again.</li>
-			</ul>
+		<!-- Slide-in area for adjusting audio and video settings -->
+		<div id="pnlConfigAV" uk-offcanvas="overlay: true">
+			<div class="uk-offcanvas-bar">
+				<button class="uk-offcanvas-close" type="button" uk-close></button>
+
+				<h3>Communications Settings</h3>
+				<p class="uk-text-emphasis uk-margin-remove-bottom">Audio Output</p>
+				<div id="localAudioDest">
+					<div uk-form-custom="target: > * > span:last-child">
+						<select>
+						</select>
+						<span class="uk-link">
+							<span uk-icon="icon: receiver"></span>
+							<span></span>
+						</span>
+					</div>
+				</div>
+				<span class="uk-label click">Test</span>
+
+				<p class="uk-text-emphasis uk-margin-remove-bottom">Camera</p>
+				<div id="cameraInput">
+					<div uk-form-custom="target: > * > span:last-child">
+						<select>
+						</select>
+						<span class="uk-link">
+							<span uk-icon="icon: video-camera"></span>
+							<span></span>
+						</span>
+					</div>
+				</div>
+
+				<p class="uk-text-emphasis uk-margin-remove-bottom">Microphone</p>
+				<div id="microphoneInput">
+					<div uk-form-custom="target: > * > span:last-child">
+						<select>
+						</select>
+						<span class="uk-link">
+							<span uk-icon="icon: microphone"></span>
+							<span></span>
+						</span>
+					</div>
+				</div>
+				<span class="uk-label click">Test</span>
+				<progress id="microphoneLevel" value="0" max="100" hidden />
+
+			</div>
 		</div>
 
-		<div class="welcomeNoBox">
-			<b class="uk-text-danger">ET-312 Not Linked</b>
-			<p>You have successfully connected, but remote control is not enabled
-				because the sub has not linked an ET-312 box.</p>
-			<p>You can still share audio and video with the sub, and select an audiostim file.</p>
-			<p>Remote control will be automatically enabled once the sub links a box.</p>
-		</div>
+		<!-- Modal Dialogs -->
+		<div class="alert">
+			<div class="connectionRefused">
+				<b class="uk-text-warning">Connection Refused</b>
+				<ul>
+					<li>Verify the PIN or URL for this session with the sub.</li>
+					<li>Check that the PIN is entered correctly.</li>
+				</ul>
+			</div>
 
-		<div class="mediaMissing">
-			<b class="uk-text-danger">Missing Media Device</b>
-			<p>ErosWeb was not able to access an audio or video device needed for sharing.</p>
-			<ul>
-				<li>Make sure your webcam or other device is connected and turned on.</li>
-				<li>If using a built-in camera, make sure it is enabled.</li>
-				<li>Check your communication settings (click on the <span class="uk-icon" uk-icon="cog"></span>
-					icon in the page header).</li>
-				<li>Is your laptop open?</li>
-			</ul>
-		</div>
+			<div class="connectionFailed">
+				<b class="uk-text-danger">Connection Failed</b>
+				<ul>
+					<li>Verify the URL for this session with the sub.</li>
+					<li>Check that the Session ID is correct (the Session ID is Case Sensitive).</li>
+					<li>Make sure the sub is still presenting themselves for control by a remote user.</li>
+					<li>Try connecting again.</li>
+				</ul>
+			</div>
 
-		<!-- Modal dialog to coach the user on enabling access to A/V devices -->
-		<div class="GUMCoach">
-			<h3 class="uk-modal-title uk-text-danger">Device Access Blocked</h3>
-			<p>ErosWeb cannot share audio and video because you have blocked access to the
-				camera and/or microphone.</p>
-			<p>To fix this, go to the security settings in your browser:</p>
-			<ul>
-				<li>In <b>Google Chrome</b>
-					<ol>
-						<li>Navigate to <code>chrome://settings/content</code></li>
-						<li>Check both the "microphone" and "camera" sections</li>
-						<li>Reset permissions for the site
-							<code textContent="document.location.origin"></code>
-						</li>
-					</ol>
-				</li>
-				<li>In <b>Safari</b>, go to the <code>Safari | Settings for This Website...</code> menu on MacOS,
-					or access "Website Settings" via the "<b><span style="font-size: 75%">A</span></b>A" button in the address bar on iOS.</li>
-			</ul>
+			<div class="welcomeNoBox">
+				<b class="uk-text-danger">ET-312 Not Linked</b>
+				<p>You have successfully connected, but remote control is not enabled
+					because the sub has not linked an ET-312 box.</p>
+				<p>You can still share audio and video with the sub, and select an audiostim file.</p>
+				<p>Remote control will be automatically enabled once the sub links a box.</p>
+			</div>
+
+			<div class="mediaMissing">
+				<b class="uk-text-danger">Missing Media Device</b>
+				<p>ErosWeb was not able to access an audio or video device needed for sharing.</p>
+				<ul>
+					<li>Make sure your webcam or other device is connected and turned on.</li>
+					<li>If using a built-in camera, make sure it is enabled.</li>
+					<li>Check your communication settings (click on the <span class="uk-icon" uk-icon="cog"></span>
+						icon in the page header).</li>
+					<li>Is your laptop open?</li>
+				</ul>
+			</div>
+
+			<!-- Modal dialog to coach the user on enabling access to A/V devices -->
+			<div class="GUMCoach">
+				<h3 class="uk-modal-title uk-text-danger">Device Access Blocked</h3>
+				<p>ErosWeb cannot share audio and video because you have blocked access to the
+					camera and/or microphone.</p>
+				<p>To fix this, go to the security settings in your browser:</p>
+				<ul>
+					<li>In <b>Google Chrome</b>
+						<ol>
+							<li>Navigate to <code>chrome://settings/content</code></li>
+							<li>Check both the "microphone" and "camera" sections</li>
+							<li>Reset permissions for the site
+								<code textContent="document.location.origin"></code>
+							</li>
+						</ol>
+					</li>
+					<li>In <b>Safari</b>, go to the <code>Safari | Settings for This Website...</code> menu on MacOS,
+						or access "Website Settings" via the "<b><span style="font-size: 75%">A</span></b>A" button in the address bar on iOS.</li>
+				</ul>
+			</div>
 		</div>
-	</div>
 
 </body>
 

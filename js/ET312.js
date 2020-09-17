@@ -1,5 +1,16 @@
 'use strict';
+
+// https://github.com/DirtyHairy/async-mutex (MIT)
 import { Mutex, Semaphore, withTimeout } from './lib/async-mutex.js';
+
+// Throw an error if the promise (such as a read operation)
+// does not complete within ms milliseconds.
+function timeout(ms, promise) {
+	return new Promise((resolve, reject) => {
+		setTimeout(() => reject(new Error("timeout")), ms);
+		promise.then(resolve, reject);
+	});
+}
 
 /**
  * Generates an uint8 checksum for a packet. Checksums are generated any time a
@@ -133,23 +144,24 @@ class ET312Base {
 	 * @throws {Error} Error thrown if 0x7 is not received back.
 	 * @private
 	 */
-	async handshake() {
+	async handshake(minBytes = 1, mutex) {
 
 		console.log(`Begin handshake.  Our key is ${this._key}`);
 
 		let sync_byte = 0x00;
 		if (this._key) sync_byte = this.encryptByte(sync_byte);
 		let data;
-		for (let i = 0; i < 12; i++) {
+		for (let i = 0; i <= 12; ++i) {
 			try {
-				data = await this.writeAndExpect([sync_byte], 1);
+				data = await this.writeAndExpect([sync_byte], 1, mutex);
 			} catch (err) {
 				if ('timeout' == err.message) continue;
 				throw err;
 			}
-			if (data[0] == 0x7)
-				return;
-			else {
+			if (data[0] == 0x7) {
+				console.log(`Received ${data}. Handshake (${i}/${minBytes}) OK.`);
+				if (i >= minBytes) return;
+			} else {
 				console.warn(`Received ${data} expected 0x07.`);
 			}
 		}
@@ -264,6 +276,40 @@ class ET312Serial extends ET312Base {
 		this._port = port;
 		if (!this._port) throw new Error('No port specified.');
 		this._mutex = new Mutex(); // Used to synchronize read/write operations
+
+		this.count = 0;
+	}
+
+	// Reads from |reader| until at least |targetLength| is read or the stream is
+	// closed. The data is returned as a combined Uint8Array.
+	async readWithLength(writer, targetLength) {
+		const chunks = [];
+		let actualLength = 0;
+
+		// while (port.readable) {
+		// 	const reader = port.readable.getReader();
+
+		while (true) {
+			// let { value, done } = await this._reader.read();
+			// try {
+			let { value, done } = await timeout(500, this._reader.read());
+			this.count += value.byteLength;
+			console.log(`Read: ${value}; done: ${done}; bytes so far ${this.count}`);
+			chunks.push(value);
+			actualLength += value.byteLength;
+			if (actualLength >= targetLength || done) break;
+			// TODO: Handle BreakError - typically means box was turned off or disconnected
+		}
+
+		// It would be better to allocate |buffer| up front with the number of
+		// of bytes expected but this is the best that can be done without a
+		// BYOB reader to control the amount of data read.
+		const buffer = new Uint8Array(actualLength);
+		chunks.reduce((offset, chunk) => {
+			buffer.set(chunk, offset);
+			return offset + chunk.byteLength;
+		}, 0);
+		return buffer;
 	}
 
 	/**
@@ -288,55 +334,86 @@ class ET312Serial extends ET312Base {
 	 *	checksum, or timeout/too few bytes read.
 	 * @private
 	 */
-	async writeAndExpect(data, length) {
-		// console.log(`${Date.now()} in writeAndExpect`);
-		const release = await this._mutex.acquire(); // Make sure no one else is using the ET-312
-		// console.log(`${Date.now()} Got mutex; proceeding...`);
+	async writeAndExpect(data, length, mutex) {
+
+		let release = null;
+		if (!mutex) release = await this._mutex.acquire(); // Make sure no one else is using the ET-312
+
+		// There is an issue with Windows and USB-to-Serial adapters which use the FTDI chipset.
+		// The read() operation will hang if the data to be returned crosses a 255-byte threshold
+		// (suspect some sort of buffer issue).  This code works around the problem by using one-
+		// byte handshake messages to fill up and reset the buffer whenever an "overflow"
+		// condition is anticipated.
+		let newCount = ((this.count + length) % 255);
+
+		console.log(`Writing [${data}], exepcting ${length} bytes.  Byte count before ${this.count} / after ${newCount}`);
+
+		if ((newCount > 0) && (newCount < (this.count % 255))) {
+			newCount++;
+			console.warn(`Synchronizing protocol... (${newCount})`);
+			await this.handshake(newCount, release);
+			console.log('...sync complete');
+		}
 
 		let buffer = new Uint8Array(0);
 		try {
-			if (data) {
-				// console.log(`Writing: [${data}]; expecting ${length} bytes.`);
-				await this._writer.write(new Uint8Array(data));
-			}
 
-			// Now read 'length' bytes from the stream
-			// Time out if a response is not received promptly; this indicates that the
-			// ET312 is not connected, turned on, or functioning properly.
-			let t;
-			while (buffer.length < length) {
-				const { value, done } = await Promise.race([
-					this._reader.read(),
-					new Promise((_, reject) => t = setTimeout(() => {
-						console.log(`Wrote: [${data}]; expecting ${length} bytes.`);
-						console.log(`Received ${buffer.length} bytes so far: [${buffer}]; done: ${done}`);
-						reject(new Error('timeout'));
-					}, 1000))
-				]);
-				clearTimeout(t);
+			const writer = this._port.writable.getWriter();
+			writer.write(new Uint8Array(data));
+			const writePromise = writer.close();
+			console.log(`Wrote ${data}`);
+			buffer = await this.readWithLength(writer, length);
+			await writePromise;
 
-				// Append any new data to existing buffer
-				if (value) buffer = Uint8Array.from([...buffer,...value]);
+			console.log(`Received: [${buffer}]`);
 
-				// console.log(`Read: ${value}; done: ${done}; buffer: [${buffer}]`);
-			}
+			/*
+						if (data) {
+							await this._writer.write(new Uint8Array(data));
+							console.log(`${Date.now() - t0} Wrote: [${data}]; expecting ${length} bytes.`);
+						}
 
-			if (buffer.length > length) {
-				buffer = buffer.slice(-1 * length);
-				console.warn(`Excess serial data: was expecting ${length} bytes.  Returning [${buffer}].`);
+						// Now read 'length' bytes from the stream
+						// Time out if a response is not received promptly; this indicates that the
+						// ET312 is not connected, turned on, or functioning properly.
+						let t;
+						while (buffer.length < length) {
+							const { value, done } = await Promise.race([
+								this._reader.read() //,
+								// new Promise((_, reject) => t = setTimeout(() => {
+								// 	console.log(`Wrote: [${data}]; expecting ${length} bytes.`);
+								// 	console.log(`Timeout; received ${buffer.length} bytes so far: [${buffer}]`);
+								// 	reject(new Error('timeout'));
+								// }, 1000))
+							]);
+							// clearTimeout(t);
+
+							console.log(`${Date.now() - t0} Read: ${value}; done: ${done}; buffer: [${buffer}]`);
+
+							// Append any new data to existing buffer
+							if (value) buffer = Uint8Array.from([...buffer,...value]);
+
+						}
+			*/
+			if (buffer && (buffer.length > length)) {
+				console.warn(`Excess serial data: was expecting ${length} bytes, have [${buffer}].`);
+
+				buffer = buffer.slice(0, length); //-1 * length);
+				console.warn(`Returning [${buffer}].`);
 			}
 
 			// If key exchange has been completed and we are expecting more than 1 byte back,
 			// assume we have a checksum.
 			if (this._key && (length > 1)) verifyChecksum(buffer);
 
-			// console.log(`Received OK: ${buffer}`);
 			return buffer;
 		} catch (err) {
+			console.log(`Error during write/read operation: ${err}; buffer ${buffer}`);
 			if ('timeout' == err.message) err.buffer = buffer;
 			throw err;
 		} finally {
-			release();
+			if (release) release();
+			console.log(`Done with Write [${data}] / Read ${length} operation.`);
 		}
 	}
 
@@ -357,12 +434,13 @@ class ET312Serial extends ET312Base {
 		try {
 			// - Wait for the port to open.
 			await this._port.open({
-				baudrate: 19200
+				baudrate: 19200,
+				bufferSize: 8
 			});
 
 			// Get ready to read and write stream
 			this._reader = this._port.readable.getReader();
-			this._writer = this._port.writable.getWriter();
+			//this._writer = this._port.writable.getWriter();
 
 			// Synchronize protocol
 			await this.handshake();
@@ -372,6 +450,7 @@ class ET312Serial extends ET312Base {
 
 			return true;
 		} catch (err) {
+			console.dir(err);
 			await this.close();
 			throw err;
 		}
@@ -379,23 +458,34 @@ class ET312Serial extends ET312Base {
 
 	// Close the connection to the ET-312.
 	async close(force) {
+
+		console.log(`Closing connection to ET-312. (force = ${force}).`);
+
 		if (!this._port) {
 			return;
 		}
 
-		if (this._writer) {
-			if (this._key && !force) await this.resetKey();
-			await this._writer.releaseLock();
-			this._writer = null;
-		}
+		console.log(`Key: ${this._key} | Readable: ${this._port.readable} | Reader: ${this._reader}`);
 
-		if (this._port.readable && this._reader) {
-			await this._reader.cancel();
+		// if (this._writer) {
+		if (this._key && !force) await this.resetKey();
+		// await this._writer.releaseLock();
+		// this._writer = null;
+		// }
+
+		try {
+			if (this._port.readable && this._port.readable.locked && this._reader) {
+				await this._reader.cancel();
+				this._reader.releaseLock();
+			}
+			await this._port.close();
+			console.log("Port closed.");
+		} catch (e) {
+			console.dir(e);
+		} finally {
+			this._reader = null;
+			this._port = null;
 		}
-		this._reader = null;
-		await this._port.close();
-		this._port = null;
 	}
 }
-
 export { ET312Serial, ET312Base };

@@ -53,18 +53,32 @@ class ET312Remote {
 		// This structure maps ET-312 memory addresses to friendly names.
 		this.DEVICE = {
 			SYSTEMFLAGS: { address: 0x400f, description: "System Flags", heartbeat: true },
-			ADC1: { address: 0x4061, description: "Multi-adjust knob position", heartbeat: true },
-			ADC4: { address: 0x4064, description: "Level A Knob Position", heartbeat: true },
-			ADC5: { address: 0x4065, description: "Level B Knob Position", heartbeat: true },
+			//		ADC0: { address: 0x4060, description: "Output Current Sense" },
+			ADC1: { address: 0x4061, description: "Multi-adjust knob position" },
+			ADC4: { address: 0x4064, description: "Level A Knob Position" },
+			ADC5: { address: 0x4065, description: "Level B Knob Position" },
 			ADC6: { address: 0x4066, description: "Audio Input Level A", heartbeat: true },
 			ADC7: { address: 0x4067, description: "Audio Input Level B", heartbeat: true },
 			MENUSTATE: { address: 0x406D, description: "Menu State" },
+			//		MENULOW: { address: 0x4079, description: "Lowest Selectable Menu Item/Mode" },
+			//		MENUHIGH: { address: 0x407A, description: "Highest Selectable Menu Item/Mode" },
 			MODENUM: { address: 0x407b, description: "Current mode number", heartbeat: true },
-			CONTROLFLAGS: { address: 0x4083, description: "Control Flags" },
-			MAVALUE: { address: 0x420d, description: "Current Multi-Adjust value", heartbeat: true },
-			MALOW: { address: 0x4086, description: "Low end of Multi-Adjust range", heartbeat: true },
-			MAHIGH: { address: 0x4087, description: "High end of Multi-Adjust range", heartbeat: true },
+			CONTROLFLAGS: { address: 0x4083, description: "Control Flags", heartbeat: true },
+			RAMPVALUE: { address: 0x409c, description: "Ramp Value Counter", heartbeat: true },
+			RAMPSELECT: { address: 0x40a3, description: "Ramp Select", heartbeat: true },
+			//		SCRATCH: { address: 0x4093, description: "Overwritten with 0 when a program starts" },
+			BATTERYLEVEL: { address: 0x4203, description: "Battery Level (0-255)" },
+			MAVALUE: { address: 0x420d, description: "Multi-Adjust value" },
+			MALOW: { address: 0x4086, description: "Low end of Multi-Adjust range" },
+			MAHIGH: { address: 0x4087, description: "High end of Multi-Adjust range" },
 			POWERLEVEL: { address: 0x41f4, description: "Power Level" }, // 1 Low - 3 High
+			//		POWERA: { address: 0x406B, description: "Channel A Calibration" },
+			//		POWERB: { address: 0x406C, description: "Channel B Calibration" },
+			//		BATTERY: { address: 0x4203, description: "Battery Level (at boot)" },
+			//		AGATE: { address: 0x4090, description: "Channel A Current Gate Value" },
+			//		BGATE: { address: 0x4190, description: "Channel B Current Gate Value" }, // 0 when no output
+			//		AINTENSITY: { address: 0x40a5, description: "Channel A Current Intensity Modulation Value" },
+			//		BINTENSITY: { address: 0x41a5, description: "Channel B Current Intensity Modulation Value" },
 			TOPMODE: { address: 0x41f3, description: "Highest available mode number" },
 			SPLITA: { address: 0x41f5, description: "Split Mode Number A" },
 			SPLITB: { address: 0x41f6, description: "Split Mode Number B" },
@@ -75,7 +89,9 @@ class ET312Remote {
 			A_FREQUENCY: { address: 0x41fc, description: "Advanced Parameter: Frequency" },
 			A_EFFECT: { address: 0x41fd, description: "Advanced Parameter: Effect" },
 			A_WIDTH: { address: 0x41fe, description: "Advanced Parameter: Width" },
-			A_PACE: { address: 0x41ff, description: "Advanced Parameter: Pace" }
+			A_PACE: { address: 0x41ff, description: "Advanced Parameter: Pace" },
+			// 0x01 = Battery available; 0x02 = Power supply available
+			POWERSTATUS: { address: 0x4215, description: "Power Status Bits" }
 		};
 
 		this._lastReportedMode = null;
@@ -136,6 +152,10 @@ class ET312Remote {
 
 	setLevel(newLevel) {
 		this._send({setLevel: newLevel});
+	}
+
+	startRamp() {
+		this._send({startRamp: true});
 	}
 
 	// Immediately stop stim output by changing to a non-existent mode
