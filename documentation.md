@@ -19,13 +19,16 @@ The cable used to connect the ET-312 to a computer has a female DB9 serial plug 
 #### 2. Serial Port / RS-232 Adapter
 RS-232 hardware is relatively rare on modern computers so a USB-to-serial adapter can be useful.  [Amazon has a wide selection](https://www.amazon.com/s?k=rs232+to+usb&i=electronics); be sure to choose a product that is compatible with your operating system.
 
-The following two products have been tested and are known to work with ErosWeb running on a MacBook Pro with MacOS Catalina.  The TRENDnet device has also been tested on PCs running Windows 10:
+The following products have been tested and are known to work with ErosWeb running on a MacBook Pro with MacOS Catalina.  The Sabrent and TRENDnet devices have also been tested on PCs running Windows 10:
 
+* [Sabrent USB 2.0 to Serial (9-Pin) DB-9 RS-232 Adapter Cable](https://www.amazon.com/gp/product/B006AA04K0/).
 * [Cable Matters USB C to Serial Adapter Cable](https://www.amazon.com/gp/product/B075GV6VL1/).  This fits directly into the "Thunderbolt 3" ports on the MacBook.
 * [TRENDnet USB to Serial 9-Pin Converter Cable](https://www.amazon.com/gp/product/B0007T27H8/).  This uses a standard USB 1.1 connector.
+* [USB TO SERIAL ADAPTER](https://erostek.com/collections/wiring/products/usb-to-serial-adapter).  This is the adapter sold by ErosTek for use with their "ErosLink" PC software.
 
 Once the serial port hardware is installed and working according to the manufacturer's instructions (and drivers), it should automatically become available to Google Chrome or Edge and thus to ErosWeb.  You then will have a male "DB9" serial port attached to your computer, ready to connect to the cable going into the ET-312 Link port.
 
+> **Note**  Almost all USB-to-Serial adapters are based off of one of two chipsets: FTDI and Prolific.  ErosWeb has been tested to work with both chipsets.  Aside from the choice of chip, the only difference between different cables is typically their phyiscal appearance/connectors and price.
 
 ### E-Stim Audio
 
