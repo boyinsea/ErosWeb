@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	UI.notSupported.hidden = true;
 	UI.butConnect.addEventListener("click", clickConnect);
 	UI.butStatus.addEventListener("click", clickStatus);
-	UI.butTest.addEventListener("click", clickTest);
+	// UI.butTest.addEventListener("click", clickTest);
 	UI.butPresent.addEventListener("click", clickPresent);
 	UI.butShare.addEventListener("click", clickShare);
 	UI.butLinkCopy.addEventListener("click", copyLink);
@@ -347,11 +347,12 @@ async function clickStatus() {
 		UI.log.textContent += 'Not connected to ET-312.\n';
 	}
 }
-	async function clickTest() {
+
+async function clickTest() {
 
 	//for (let i = 0; i < 100; i++) {
-		await STATE.et312.handshake();
-		//const n = await STATE.ctl.getValue("MODENUM");
+	await STATE.et312.handshake();
+	//const n = await STATE.ctl.getValue("MODENUM");
 	// }
 }
 
