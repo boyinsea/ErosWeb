@@ -4,33 +4,46 @@
 "use strict";
 
 import { ET312Remote } from './ET312Remote.js';
-import { audioUI } from './audio2.js';
-import { webRTChelper } from './webRTC.js';
+import { EWUtility } from './utility.js';
+import { AudioUI } from './audio2.js';
 
 const STATE = {
-	ctl: null,
+	et312: new ET312Remote(),
 	peer: null,
 	dataConn: null,
 	mediaConnection: null,
 	videoShare: null
 };
 
-const UI = {};
+const UI = {
+	audioUI: new AudioUI(async () => {
+		if (UI.audioUI.sourceSelectionEnabled) {
+			// Configure audio output (in response to first user interaction)
+			await UI.localAudio.setSinkId(UI.estimAudioDest.getValue());
+			await UI.remoteVideo.setSinkId(UI.localAudioDest.getValue());
+		}
+	})
+};
 
 document.addEventListener("DOMContentLoaded", () => {
 
 	// First step: identify UI components.
-	document.querySelectorAll('*[id]').forEach(el => UI[el.id] = el);
+	document.querySelectorAll('*[id]')
+		.forEach(el => UI[el.id] = el);
 
 	// UI text substitutions, for dialogs
-	document.querySelectorAll('*[textContent]').forEach(el => el.textContent = eval(el.getAttribute('textContent')));
+	document.querySelectorAll('*[textContent]')
+		.forEach(el => el.textContent = eval(el.getAttribute('textContent')));
 
 	/*
 		Install document- and window-level event handlers
 	*/
 
 	// Show UI once all elements are loaded and styled into final form.
-	window.addEventListener("load", () => { UI.appUi.hidden = false; });
+	window.addEventListener("load", () => {
+		UI.appUi.hidden = false;
+		UI.modeArray.parentElement.dispatchEvent(new Event('scroll'));
+	});
 
 	// Prevent wayward click and submit-type events from inadvertently resetting
 	// forms (since there is no server to submit to anyways...)
@@ -43,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			UI.butConnect.dispatchEvent(new Event('click'));
 	});
 
+
 	/*
 		Set Defaults from local storage and QueryString parameters
 	*/
@@ -53,23 +67,61 @@ document.addEventListener("DOMContentLoaded", () => {
 	UI.inputPIN.value = params.get('pin');
 
 	/*
-		Set up ET-312 UI components
+		E T - 3 1 2   E V E N T S   (from remote box)
 	*/
-	UI.modeArray.highlightMode = (newMode) => {
+	STATE.et312.addEventListener('connection', (e) => {
+		UIkit.notification('Connected to remote ET-312!', { pos: 'bottom-right', status: 'success' });
+	});
 
-		const currentModeButton = UI.modeArray.querySelector('button.uk-button-primary');
-		if (currentModeButton && (newMode != currentModeButton.value)) {
-			currentModeButton.classList.replace('uk-button-primary', 'uk-button-secondary');
+	STATE.et312.addEventListener('close', (e) => {});
+
+	STATE.et312.addEventListener('remoteControl', (e) => {
+		if (e.detail) {
+			UI.verb.textContent = "Controlling";
+		} else {
+			// Only show UI when remote control is lost while conenction remains.
+			// Do not clutter UI if the whole connection has ended.
+			if (STATE.dataConn) {
+				UI.verb.textContent = "Connected to";
+				UIkit.notification(
+					"Remote control of the sub's ET-312 box is disabled.", { pos: 'bottom-right', status: 'warning' });
+			}
 		}
+
+		// Visually enable/disable UI for interaction
+		UI.controlsOnline.querySelectorAll('button, select, input')
+			.forEach(i => i.disabled = !e.detail);
+		UI.controlsOnline.classList.toggle("disabled", !e.detail);
+		UI.iconLink.classList.toggle("connected", e.detail);
+	});
+
+	STATE.et312.addEventListener('status', refreshUI);
+
+	/*
+		E T - 3 1 2   U I   C O N T R O L S
+	*/
+
+	// *** MODE SELECTION ***
+	UI.modeArray.highlightMode = (newMode) => {
+		const currentModeButton = UI.modeArray.querySelector('button.uk-button-primary');
+		if (currentModeButton && (newMode != currentModeButton.value))
+			currentModeButton.classList.replace('uk-button-primary', 'uk-button-secondary');
 
 		// highlight new mode, if any
 		if (0 == newMode) return; // Styling on "stop" mode is never changed
 
 		const newModeButton = UI.modeArray.querySelector(`button[value="${newMode}"]`);
-		if (newModeButton) {
-			newModeButton.classList.replace('uk-button-secondary', 'uk-button-primary');
-		}
+		if (newModeButton) newModeButton.classList.replace('uk-button-secondary', 'uk-button-primary');
 	};
+
+	UI.modeArray.setTopMode = (topMode) => {
+		UI.modeArray.querySelectorAll('button[value]')
+			.forEach(el => {
+				el.disabled = (Number(el.value) > topMode);
+				el.hidden = el.disabled || el.hidden;
+			});
+		UI.modeArray.parentElement.dispatchEvent(new Event('scroll'));
+	}
 
 	UI.modeArray.addEventListener("click", (e) => {
 		let newMode = e.target.value;
@@ -80,85 +132,123 @@ document.addEventListener("DOMContentLoaded", () => {
 			// Dispatch new mode to box.  Box will reply
 			// with an info message containing updated
 			// mode, MA setting and range values.
-			if (0 == newMode) {
-				STATE.ctl.stop();
-			} else {
-				STATE.ctl.setMode(newMode);
-			}
+			if (0 == newMode) STATE.et312.execute('stop');
+			else STATE.et312.execute('setMode', newMode);
 		}
 	});
 
+	// Show or hide up/down "reminder" icons depending on scroll state.
+	UI.modeArray.parentElement.addEventListener("scroll", (e) => {
+		const t = e.target;
+		t.previousElementSibling.classList.toggle('hidden', (0 == t.scrollTop));
+		t.nextElementSibling.classList.toggle('hidden', (t.scrollTop + t.offsetHeight == t.scrollHeight));
+		t.nextElementSibling.classList.toggle('hidden', (t.scrollHeight - t.scrollTop === t.clientHeight));
+	});
+
+	UI.selSplitA.addEventListener("change", (e) => {
+		STATE.et312.setValue(STATE.et312.DEVICE.SPLITA, parseInt(e.currentTarget.value));
+	});
+
+	UI.selSplitB.addEventListener("change", (e) => {
+		STATE.et312.setValue(STATE.et312.DEVICE.SPLITB, parseInt(e.currentTarget.value));
+	});
+
+	// *** MULTI-ADJUST AND OUTPUT LEVELS ***
+	EWUtility.configureSlider(UI.levelMultiAdjust, { inverse: true });
+	UI.levelMultiAdjust.addEventListener("change", (e) => {
+		STATE.et312.setValue(STATE.et312.DEVICE.MAVALUE, e.currentTarget.getValue());
+	});
+
+	EWUtility.configureSlider(UI.levelA, { singleStep: true });
+	UI.levelA.addEventListener("change", (e) => {
+		STATE.et312.setValue(STATE.et312.DEVICE.ADC4,
+			Math.round((e.currentTarget.getValue() / 99) * 255));
+	});
+
+	EWUtility.configureSlider(UI.levelB, { singleStep: true });
+	UI.levelB.addEventListener("change", (e) => {
+		STATE.et312.setValue(STATE.et312.DEVICE.ADC5,
+			[Math.round((e.currentTarget.getValue() / 99) * 255)]);
+	});
+
+	UI.btnRamp.addEventListener("click", (e) => {
+		e.preventDefault();
+		STATE.et312.execute('startRamp');
+	});
+
+	/// *** "ADVANCED" PANE CONTROLS ***
 	UI.powerLevel.highlightLevel = (level) => {
 		const currentButton = UI.powerLevel.querySelector('span.uk-label[selected]');
-		if (currentButton && (level != currentButton.value)) {
-			currentButton.removeAttribute('selected');
-		}
+		if (currentButton && (level != currentButton.value)) currentButton.removeAttribute('selected');
 		const newButton = UI.powerLevel.querySelector(`span.uk-label[value="${level}"]`);
 		if (newButton) newButton.setAttribute('selected', true);
 	};
 
 	UI.powerLevel.addEventListener("click", function (e) {
-
+		e.preventDefault();
 		if (UI.powerLevel.classList.contains("interactive")) {
 			let newLevel = e.target.getAttribute("value");
-			if (newLevel) {
-				e.preventDefault();
-				newLevel = parseInt(newLevel);
-
-				// Dispatch new level to box.  Box will reply
-				// with an info message which triggers a UI update.
-				STATE.ctl.setLevel(newLevel);
-			}
+			// Dispatch new level to box.  Box will reply
+			// with an info message which triggers a UI update.
+			if (newLevel) STATE.et312.execute('setPowerLevel', parseInt(newLevel));
 		}
 	});
 
 	UI.inputRampLevel.addEventListener("change", (e) => {
 		UI.btnRamp.innerText = `START (${UI.inputRampLevel.value}%)`;
 		if (e.isTrusted)
-			STATE.ctl.setValue(
-				STATE.ctl.DEVICE.A_RAMPLEVEL,
-				[155 + parseInt(e.currentTarget.value)]);
+			STATE.et312.setValue(
+				STATE.et312.DEVICE.A_RAMPLEVEL,
+				155 + parseInt(e.currentTarget.value));
 	});
 
 	UI.inputRampTime.addEventListener("change", (e) => {
-		STATE.ctl.setValue(
-			STATE.ctl.DEVICE.A_RAMPTIME,
-			[parseInt(e.currentTarget.value)]);
+		STATE.et312.setValue(STATE.et312.DEVICE.A_RAMPTIME, parseInt(e.currentTarget.value));
 	});
 
-	UI.btnRamp.addEventListener("click", (e) => {
-		e.preventDefault();
-		STATE.ctl.startRamp();
+	//	VISIBLE / AVAILABLE MODES
+	//	localStorage holds a list of mode types that the user
+	//	has explicitly HIDDEN (so that new modes default to
+	//  being shown).
+	UI.pnlConfig.addEventListener('beforehide', (e) => {
+		let modes = [];
+		for (const control of UI.modeSelect.querySelectorAll("input[name]"))
+			if (!control.checked) modes.push(control.name);
+		localStorage.setItem('modeSelect', modes.join(','));
+		localStorage.setItem('modeScroll', UI.modeScroll.checked);
 	});
 
-	configureSlider(UI.levelMultiAdjust, true); // Invert MA range values
-	UI.levelMultiAdjust.addEventListener("change", (e) => {
-		STATE.ctl.setValue(
-			STATE.ctl.DEVICE.MAVALUE,
-			[e.currentTarget.getValue()]);
+	UI.modeSelect.addEventListener("change", (e) => {
+		const buttons = UI.modeArray.getElementsByClassName(e.target.name);
+		for (const el of buttons) el.hidden = (!e.target.checked || el.disabled);
+		UI.modeArray.parentElement.dispatchEvent(new Event('scroll'));
 	});
 
-	configureSlider(UI.levelA);
-	UI.levelA.addEventListener("change", (e) => {
-		STATE.ctl.setValue(
-			STATE.ctl.DEVICE.ADC4,
-			[Math.round((e.currentTarget.getValue() / 99) * 255)]);
+	UI.modeScroll.addEventListener("change", (e) => {
+		const scrollArea = UI.modeArray.parentElement;
+		scrollArea.classList.toggle('uk-overflow-auto', e.target.checked);
+		scrollArea.classList.toggle('uk-margin-small-bottom', !e.target.checked);
+		scrollArea.previousElementSibling.hidden = !e.target.checked;
+		scrollArea.nextElementSibling.hidden = !e.target.checked;
+		scrollArea.dispatchEvent(new Event('scroll'));
 	});
 
-	configureSlider(UI.levelB);
-	UI.levelB.addEventListener("change", (e) => {
-		STATE.ctl.setValue(
-			STATE.ctl.DEVICE.ADC5,
-			[Math.round((e.currentTarget.getValue() / 99) * 255)]);
-	});
+	const modeScroll = localStorage.getItem('modeScroll');
+	UI.modeScroll.checked = ("true" == modeScroll);
+	UI.modeScroll.dispatchEvent(new Event('change', { bubbles: true }));
 
-	UI.selSplitA.addEventListener("change", (e) => {
-		STATE.ctl.setValue(STATE.ctl.DEVICE.SPLITA, [parseInt(e.currentTarget.value)]);
-	});
-
-	UI.selSplitB.addEventListener("change", (e) => {
-		STATE.ctl.setValue(STATE.ctl.DEVICE.SPLITB, [parseInt(e.currentTarget.value)]);
-	});
+	const modes = localStorage.getItem('modeSelect');
+	if (modes) {
+		for (const modeName of modes.split(',')) {
+			const control = UI.modeSelect.querySelector(`input[name="${modeName}"]`);
+			if (control) {
+				control.checked = false;
+				// Firing the "change" event causes the checkbox
+				// to hide the affected mode buttons.
+				control.dispatchEvent(new Event('change', { bubbles: true }));
+			}
+		}
+	}
 
 	/*
 		Set up Audio and Video components
@@ -173,16 +263,23 @@ document.addEventListener("DOMContentLoaded", () => {
 		UI.butUnmute.hidden = true;
 	});
 
+
 	/*
 		eStim Audio
 	*/
+	AudioUI.configureDropTarget(UI.dropTarget, UI.localAudio);
 
-	audioUI.configureDropTarget(UI.dropTarget, UI.localAudio);
+	// Configure backup volume control for Safari, if necessary
+	UI.audioUI.configureAltVolume(UI.localAudio, UI.backupVolume);
+
+	// Forward interesting events to remote sub
+	UI.audioUI.configureForwarding(UI.localAudio, () => { return STATE.dataConn; });
 
 	// Adjust UI when a new audio file is loaded.
 	UI.localAudio.addEventListener('loadedmetadata', (e) => {
 		UI.dropTarget.classList.toggle("gotFileActive", true);
-		UI.dropTarget.querySelector("#fileName").innerText = e.target.title;
+		UI.dropTarget.querySelector("#fileName")
+			.innerText = e.target.title;
 		const overlay = UI.dropTarget.querySelector('.preCover.uk-overlay');
 		if (overlay) overlay.classList.remove("uk-overlay", "uk-overlay-default", "uk-position-cover");
 	});
@@ -191,88 +288,43 @@ document.addEventListener("DOMContentLoaded", () => {
 	UI.localAudio.addEventListener('canplaythrough', (e) => {
 		if (UI.ckAutoplay.checked && !STATE.dataConn) e.target.play();
 	});
-
-	// Forward interesting events to remote sub
-	['play', 'pause', 'seeked', 'volumechange', 'loadedmetadata'].forEach(e => UI.localAudio.addEventListener(e, forwardAudioEvent));
-
-	// Web Audio and interaction with the <audio> element is
-	// unstable in Safari right now so we just disable.
-	// if ("Apple Computer, Inc." == navigator.vendor) { // "Google Inc."
-	// 	UI.dropTarget.className = "notSupported";
-	// 	UI.localAudio = null;
-	// 	UI.audioUI = new audioUI();
-	// } else {
-
-	// UI.ckMonitor.checked = true;
+	UI.localAudio.addEventListener('remoteLoad', (e) => {
+		if (UI.ckAutoplay.checked) e.target.play();
+	});
 
 	// Give a one-time warning if playing an audiostim file but
 	// ET-312 isn't connected or set to an audio mode.
-	UI.localAudio.addEventListener('play', function () {
+	UI.localAudio.addEventListener('play', () => {
 		let OK = UI.localAudioPlayWarning;
-		if (STATE.ctl) {
-			const m = STATE.ctl.getMode();
-			if (m && m.startsWith("Audio")) OK = true;
-		}
+		const m = STATE.et312.mode;
+		if (m && m.startsWith("Audio")) OK = true;
 		if (!OK) {
-			console.dir(STATE.ctl);
 			UIkit.notification(
-				(STATE.ctl) ?
+				(STATE.et312.connected) ?
 				'Remember to select an Audio mode!' :
-				"<span class='uk-text-small'>Audio will be sent to remote sub's ET-312 box once connected." +
-				// ((UI.ckMonitor.checked) ? "" : " Use the \"Monitor\" checkbox to preview audio locally.") +
-				"</span>", { pos: 'bottom-center', status: 'primary' });
+				"<span class='uk-text-small'>Audio will be sent to remote sub's ET-312 box once connected.</span>", { pos: 'bottom-right', status: 'primary' });
 			UI.localAudioPlayWarning = true;
 		}
 	});
 
-	UI.audioUI = new audioUI(); //() => {
-	// Final setup steps to be run upon first user interaction with page.
-	// UI.audioUI.configurePlayer(UI.localAudio);
-	// UI.audioUI.addMonitor(UI.localAudio, UI.ckMonitor, UI.localAudioDest);
-	// UI.audioUI.monitor(UI.localAudio, true);
-	//});
-	// }
-
-	// Configure backup volume control for Safari.
-	// (default rendering doesn't work well in our layout)
-	if (("Apple Computer, Inc." == navigator.vendor) && UI.backupVolume) {
-		UI.backupVolume.hidden = false;
-		UI.backupVolume.value = UI.localAudio.volume;
-
-		UI.backupVolume.addEventListener("input", (e) => {
-
-			console.log(`Volume ${e.target.value}`);
-
-			if (navigator.appVersion.match(/\(iPad;/)) {
-				// iOS doesn't support control of the volume property;
-				// work-around is to call the event forwarder directly.
-				forwardAudioEvent({
-					type: 'volumechange',
-					target: { volume: e.target.value }
-				});
-			} else {
-				// On MacOS, volume can be set and volumechange
-				// events are fired in the normal way.
-				UI.localAudio.volume = e.target.value;
-				//			if (player.monitor instanceof GainNode)
-				// UI.localAudio.monitor.gain.exponentialRampToValueAtTime(UI.backupVolume.value, UI.localAudio.monitor.context.currentTime + 0.1)
-			}
+	UI.audioUI.init()
+		.then(() => {
+			UI.audioUI.configureSelector(UI.estimAudioDest, UI.localAudio);
+			UI.audioUI.configureSelector(UI.localAudioDest, UI.localVideo);
+			UI.audioUI.configureSelector(UI.cameraInput, null, 'videoinput');
+			UI.audioUI.configureSelector(UI.microphoneInput, null, 'audioinput');
 		});
-
-	}
-
-	UI.audioUI.init().then(() => {
-		UI.audioUI.configureSelector(UI.localAudioDest, UI.localVideo);
-		UI.audioUI.configureSelector(UI.cameraInput, null, 'videoinput');
-		UI.audioUI.configureSelector(UI.microphoneInput, null, 'audioinput');
-	});
-
+	UI.pnlConfig.addEventListener("beforeshow", UI.audioUI.reconfigure, { once: true });
 
 	/*
 		Connect buttons and finalize UI appearance.
 	*/
-	UI.localAudioDest.nextElementSibling.addEventListener("click", testAudioOutput);
-	UI.microphoneInput.nextElementSibling.addEventListener("click", testMicLevel);
+	UI.estimAudioDest.previousElementSibling.querySelector("span.click")
+		.addEventListener("click", UI.audioUI.testAudioOutput);
+	UI.localAudioDest.previousElementSibling.querySelector("span.click")
+		.addEventListener("click", UI.audioUI.testAudioOutput);
+	UI.microphoneInput.previousElementSibling.querySelector("span.click")
+		.addEventListener("click", e => { UI.audioUI.testMicLevel(e, UI.pnlConfig, 'beforehide'); });
 	UI.butConnect.addEventListener("click", clickConnect);
 	UI.butShare.addEventListener("click", clickShare);
 	toggleConnectionState(false);
@@ -301,12 +353,12 @@ async function clickConnect() {
 			return;
 		}
 
-		// Save last-used scene Name
-		localStorage.setItem('sceneName', UI.inputName.value);
-
 		// Prevent multiple button presses. Connection setup can take a minute;
 		// createPeerConnection will re-enable the button when ready.
 		UI.butConnect.disabled = true;
+
+		// Save last-used scene Name
+		localStorage.setItem('sceneName', UI.inputName.value);
 
 		// Create connection to the remote peer.
 		// When the connection is ready (or not), it will trigger a callback
@@ -323,7 +375,6 @@ async function clickConnect() {
 				// (PeerJS issue) so we ask the remote sub to close the
 				// connection for us.
 				STATE.dataConn.send({ goodbye: true });
-				console.log("Manual 'goodbye' message sent.");
 				STATE.dataConn = null;
 				return;
 			} else {
@@ -335,12 +386,11 @@ async function clickConnect() {
 				c.close();
 			}
 		}
-		toggleConnectionState(false);
 	}
 }
 
 // Toggle state based on presence of a connection to a remote session
-// (connected, true|false).
+// (connected, true|false).  This does not affect the ET-312 UI.
 function toggleConnectionState(connected) {
 
 	UI.butConnect.textContent = (connected) ? "Disconnect" : "Connect";
@@ -357,9 +407,6 @@ function toggleConnectionState(connected) {
 		UI.inputSId.classList.toggle('uk-form-danger', false);
 		UI.inputPIN.classList.toggle('uk-form-danger', false);
 	} else {
-
-		refreshUI(false); // Visually disable box controls
-
 		// If we are still holding a data connection object,
 		// this means that the sub has ended the scene.
 		if (STATE.dataConn) {
@@ -370,13 +417,12 @@ function toggleConnectionState(connected) {
 		if (STATE.peer) {
 			STATE.peer.destroy();
 			STATE.peer = null;
-			console.log("DOM peer destroyed");
 		}
 	}
 }
 
-// Refresh UI based on information from a remote ET-312 box
-function refreshUI(info) {
+// Refresh UI based on information from ET-312
+function refreshUI(e) {
 
 	// Functions to update the UI with the latest values from the remote box (info) object
 	const UI_UPDATE = {
@@ -397,56 +443,34 @@ function refreshUI(info) {
 		RAMPSELECT: (v) => {
 			UI.btnRamp.hidden = (v == 39);
 			UI.rampLevel.hidden = (v == 1);
-		}
-
+		},
+		TOPMODE: (v) => UI.modeArray.setTopMode(v)
 		// TODO: Audio levels?
 
 	};
 
-	UI.iconLink.classList.toggle("connected", Boolean(info));
-
+	const info = e.detail;
 	if (info) {
-		UI.verb.textContent = "Controlling";
-
-		// Visually enable UI for interaction if currently disabled
-		if (UI.controlsOnline.classList.contains("disabled")) {
-			UI.controlsOnline.querySelectorAll('button, select, input').forEach(i => i.disabled = false);
-			UI.controlsOnline.classList.remove("disabled");
-		}
-
-		// UI reconfiguration.  This is typically only done at startup,
+		// Control reconfiguration.  This is typically only done at startup,
 		// or if there are significant UI changes such as a new multi-adjust
 		// range when the box mode changes.
-		if (info.SPLITA) configureSplitSelect(UI.selSplitA, info.SPLITA, info);
-		if (info.SPLITB) configureSplitSelect(UI.selSplitB, info.SPLITB, info);
+		if (info.SPLITA) STATE.et312.configureSplitSelect(UI.selSplitA, info.SPLITA, info.TOPMODE);
+		if (info.SPLITB) STATE.et312.configureSplitSelect(UI.selSplitB, info.SPLITB, info.TOPMODE);
 		if (('MALOW' in info) && ('MAHIGH' in info)) UI.levelMultiAdjust.setRange(info.MALOW, info.MAHIGH);
 
 		// Update any UI elements for which values were provided.
 		// (sometimes info contains only one or two changed properties)
-		for (const property in info) {
-			// console.log(`info: ${property} = ${info[property]}`);
+		for (const property in info)
 			if (property in UI_UPDATE) UI_UPDATE[property](info[property]);
-		}
-
-	} else {
-		UI.verb.textContent = "Connected to";
-
-		// Visually disable online-only UI for interaction until remote box connected
-		if (!UI.controlsOnline.classList.contains("disabled")) {
-			UI.controlsOnline.querySelectorAll('button, select, input').forEach(i => i.disabled = true);
-			UI.controlsOnline.classList.add("disabled");
-		}
 	}
 }
 
 function createPeerConnection(destId) {
 
 	// https://elements.heroku.com/buttons/peers/peerjs-server
-
 	const P = new Peer('', {
-		host: 'erosweb-peerjs-server.herokuapp.com', //document.location.host,
-		port: 443, // 9000,
-		//path: '/peerjs',
+		host: 'erosweb-peerjs-server.herokuapp.com',
+		port: 443,
 		secure: true
 	});
 
@@ -456,201 +480,150 @@ function createPeerConnection(destId) {
 			metadata: {
 				PIN: UI.inputPIN.value,
 				sceneName: UI.inputName.value,
-			} //,
-			//serialization: 'json'
+			}
+		});
+
+		dataConn.on('open', () => {
+			dataConn.peerConnection.addEventListener('connectionstatechange', (e) => {
+				if (("failed" == e.target.connectionState)) { // || ("disconnected" == e.target.connectionState)) {
+					STATE.dataConn = null;
+					dataConnectionError(e);
+					dataConn.close();
+				}
+			});
 		});
 
 		// Data received from remote sub
 		dataConn.on('data', (data) => {
-			console.dir(data);
+
 			for (const prop in data) {
 				let obj = data[prop];
-				console.log(`${prop} = ${JSON.stringify(obj)}`);
-				if ('welcome' == prop) {
+
+				if (STATE.et312.consumeMessage([prop, obj])) continue;
+				if (AudioUI.handleEstimAudio([prop, obj], UI.localAudio)) continue;
+
+				switch (prop) {
+				case 'welcome':
 					if (true === obj) {
 						// welcome: true means the sub is willing to accept connection;
 						// proceed with setup steps.
-
 						STATE.dataConn = dataConn;
+						STATE.et312.connect(dataConn);
 						toggleConnectionState(true);
 
-						// Display success message if the sub's ET-312 is linked.
-						// If not, a more detailed modal dialog will be displayed below.
-						if (data.info) UIkit.notification('Connected!', { pos: 'top-left', status: 'success' });
+						// Show a warning message if the sub explicitly reports that
+						// no box is presently connected.
+						if (false === data.ET312) EWUtility.showAlert('welcomeNoBox');
 
-						// if we have audio/video to share, call the sub
-						if (STATE.videoShare) {
-							console.log('Sharing video; calling sub');
+						// Report video sharing status, either by calling the sub
+						// if video is available, or reporting "false".
+						if (STATE.videoShare)
 							setupMediaConnection(P.call(dataConn.peer, STATE.videoShare));
-						} else {
+						else
 							STATE.dataConn.send({ videoShare: false });
-						}
 
 						// If any eStimAudio is active, send it to the sub now
-						if (UI.localAudio.readyState > 0) UI.localAudio.dispatchEvent(new Event('loadedmetadata'));
-
-						// Once setup is complete, disconnect from the peer server
-						// STATE.peer.disconnect();
+						if (UI.localAudio.readyState > 0)
+							UI.localAudio.dispatchEvent(new Event('loadedmetadata'));
 
 					} else if (false === obj) {
 						// welcome: false means the remote sub wants to close the connection.
 						if (STATE.dataConn) STATE.dataConn.close();
 					} else {
 						// welcome: [object] means Connection refused; object contains error information.
-						// This will be followed by a "close" event.
 						if ('PIN Mismatch' == obj.error) UI.inputPIN.classList.toggle('uk-form-danger', true);
-						showAlert('connectionRefused', obj.error).then(() => { UI.butConnect.disabled = false; });
+						EWUtility.showAlert('connectionRefused', obj.error);
+						dataConn.close();
 					}
-				}
+					break;
 
-				// sub's scene name, for UI
-				if ('sceneName' == prop) UI.subName.textContent = obj;
+					// sub's scene name, for UI
+				case 'sceneName':
+					UI.subName.textContent = obj;
+					break;
 
-				// Information about the sub's ET-312 box.  false == no box connected or box has gone away
-				if ('info' == prop) {
-					if (obj) {
-						if (!STATE.ctl) STATE.ctl = new ET312Remote(dataConn);
-						STATE.ctl.info(obj);
-					} else {
-						STATE.ctl = null;
-
-						// if this is part of the initial "welcome" message, display a warning
-						if (true == data.welcome) {
-							showAlert('welcomeNoBox');
-						} else UIkit.notification(
-							"Remote control of the sub's ET-312 box is disabled.", { pos: 'top-left', status: 'warning' }
-						);
-					}
-					refreshUI(obj);
-				}
-
-				// Information about scene limits
-				if ('limits' == prop) {
+					// Information about scene limits
+				case 'limits':
 					for (const limit in obj) {
 						let v = obj[limit];
-						console.log(`LIMIT: ${limit}: ${v}`);
-						if ('changePowerLevel' == limit) {
+						switch (limit) {
+						case 'changePowerLevel':
 							UI.powerLevel.classList.toggle('interactive', v);
-						} else if ('maxLevel' == limit) {
+							break;
+						case 'maxLevel':
 							UI.levelA.setLimit(v);
 							UI.levelB.setLimit(v);
+							break;
 						}
 					}
-				}
+					break;
 
-				// eStimAudio file transfer completed;
-				// Re-enable player controls
-				if (('estimAudio' == prop) && obj) {
-					UI.localAudio.hidden = false;
-					if (UI.ckAutoplay.checked) UI.localAudio.play();
-				}
-
-				// Sub has changed video sharing state; this property should
-				// only be sent when a media connection is already in place but
-				// the sub wants to add video; this requires a renegotiation of
-				// the MediaConnection.  It should NOT be sent as part of a
-				// Welcome message.
-				if (('videoShare' == prop) && !('welcome' in data)) {
-
-					console.log(`sub videoShare: ${obj}`);
-
-					// Sub is now sharing too.
-					if (obj && STATE.videoShare) {
-
-						// First close any existing connection
-						if (STATE.mediaConnection) {
-							UI.remoteVideo.pause();
-							UI.remoteVideo.srcObject = null;
-							STATE.mediaConnection.close();
+					// Sub has changed video sharing state; this property should
+					// only be sent when a media connection is already in place but
+					// the sub wants to add (or stop) video since adding a stream
+					// requires renegotiation of the MediaConnection.  It should
+					// NOT appear as part of a Welcome message, since the Dom
+					// usually initiates a connection by calling the sub.
+				case 'videoShare':
+					if (!('welcome' in data)) {
+						// true: Sub is sharing.  If we are sharing too,
+						// close any existing connection and call back so
+						// they can answer with their stream.
+						if (obj && STATE.videoShare) {
+							if (STATE.mediaConnection) {
+								// UI.remoteVideo.pause();
+								// UI.remoteVideo.srcObject = null;
+								STATE.mediaConnection.close();
+							}
+							setupMediaConnection(P.call(dataConn.peer, STATE.videoShare));
+						} else {
+							if (!obj) {
+								// false: Sub has stopped sharing video; adjust our UI.
+								if (STATE.videoShare) {
+									UI.remoteVideo.pause();
+									UI.remoteVideo.srcObject = null;
+									UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
+								} else STATE.mediaConnection.close();
+							}
 						}
-
-						// Call back so sub can reply with their video stream.
-						// TODO: Consolidate code; this is the same as reply to 'welcome'
-						console.log('Calling sub');
-						// if (STATE.peer.disconnected) STATE.peer.reconnect();
-						const videoConnection = P.call(
-							dataConn.peer,
-							STATE.videoShare);
-						setupMediaConnection(videoConnection);
 					}
-
-					// Sub has stopped sharing video; adjust our UI.
-					else if (!obj) {
-						UI.remoteVideo.pause();
-						UI.remoteVideo.srcObject = null;
-						UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
-					}
+					break;
+				default:
+					console.warn(`Unhandled message: ${prop}`);
 				}
 			}
 		});
 
 		dataConn.on('close', () => {
-			STATE.ctl = null;
 			toggleConnectionState(false);
+			STATE.et312.close();
 		});
 
-		dataConn.on('error', (err) => {
-			// This will be followed by a "close" event if the connection has totally broken down
-			console.log(`Data Connection error: ${err} (open? ${dataConn.open})`);
-			UIkit.notification("Lost connection to the remote sub.", { pos: 'top-center', status: 'danger' });
-		});
+		// This will be followed by a "close" event if the connection has totally broken down
+		dataConn.on('error', dataConnectionError);
 	});
 
 	P.on('error', (err) => {
 		if ("peer-unavailable" == err.type) UI.inputSId.classList.toggle('uk-form-danger', true);
 		toggleConnectionState(false);
 		UI.butConnect.disabled = false;
-		showAlert('connectionFailed', err);
+		EWUtility.showAlert('connectionFailed', err);
 	});
 
 	P.on('call', (mediaConnection) => {
 		// This happens when the sub attempts to connect with audio/video
-		console.log("Received a call; answering...");
-		mediaConnection.answer(STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice });
+		mediaConnection.answer(STATE.videoShare);
 		setupMediaConnection(mediaConnection);
 	});
 
 	return P;
 }
 
-/*
-	ESTIM AUDIO
-*/
-async function forwardAudioEvent(e) {
-
-	if (!STATE.dataConn) return;
-
-	let obj;
-	if ('play' == e.type) obj = { play: true };
-	else if ('pause' == e.type) obj = { play: false };
-	else if ('seeked' == e.type) {
-		if (e.target.loop && (0 == e.target.currentTime))
-			obj = { seek: -1 };
-		else
-			obj = { seek: e.target.currentTime };
-	} else if ('volumechange' == e.type) obj = { volume: e.target.volume };
-	else if ('loadedmetadata' == e.type) {
-		// Pause playback and temporarily hide controls until
-		// remote sub has received and loaded the file
-		e.target.pause();
-		e.target.hidden = true;
-
-		// Send currently-loaded content to remote sub
-		const r = await fetch(e.target.currentSrc);
-		const b = await r.blob();
-		obj = {
-			file: b,
-			name: e.target.title,
-			size: b.size,
-			type: b.type,
-			duration: e.target.duration,
-			volume: e.target.volume,
-			seek: e.target.currentTime
-		};
-	}
-
-	STATE.dataConn.send({ estimAudio: obj });
-	// console.log("Sent", obj);
+// Utility routine to display a connection error message;
+// this can be triggered in multiple places...
+function dataConnectionError(err) {
+	console.warn(err, "### Data Connection Error");
+	UIkit.notification("Lost connection to the remote sub.", { pos: 'bottom-right', status: 'danger' });
 }
 
 /*
@@ -663,7 +636,6 @@ function setupMediaConnection(conn) {
 	STATE.mediaConnection = conn;
 
 	STATE.mediaConnection.on('stream', (stream) => {
-		console.log(`Got stream: ${stream}`)
 		// Sometimes the event fires twice for the same stream (in error); ignore
 		if (UI.remoteVideo.srcObject && (UI.remoteVideo.srcObject.id == stream.id)) return;
 
@@ -672,30 +644,22 @@ function setupMediaConnection(conn) {
 		UI.butUnmute.hidden = !UI.remoteVideo.muted;
 	});
 
-	// This happens when the media connection is closed, e.g. by the
-	// remote sub ending the call.
+	// This happens when the media connection is closed, e.g. by
+	// manual disconnect or the remote sub ending the call.
 	STATE.mediaConnection.on('close', () => {
-		// console.log('Media connection closing...');
+		UI.remoteVideo.pause();
+		UI.butUnmute.hidden = true; // In case user hasn't dispatched it
 		UI.remoteVideo.nextElementSibling.hidden = false; // Show overlay
 		UI.remoteVideo.srcObject = null;
 		STATE.mediaConnection = null;
 	});
 }
 
-// Given a device ID as a string, return a Constraint object
-// suitable as input to getUserMedia.
-function parseDeviceSelector(deviceId) {
-	if ([null, '', 'default'].includes(deviceId))
-		return true;
-	else
-		return { deviceId: { exact: deviceId } };
-}
-
 async function clickShare() {
 
 	const constraints = {
-		audio: parseDeviceSelector(UI.microphoneInput.getValue()),
-		video: parseDeviceSelector(UI.cameraInput.getValue())
+		audio: AudioUI.parseDeviceSelector(UI.microphoneInput.getValue()),
+		video: AudioUI.parseDeviceSelector(UI.cameraInput.getValue())
 	};
 
 	if (!STATE.videoShare) {
@@ -711,36 +675,8 @@ async function clickShare() {
 
 			// If connected to remote, send our audio/video now
 			if (STATE.dataConn) {
-
-				// Pause eStimAudio and close any existing connection,
-				// as this will be disrupted by resetting any WebRTC media connection.
-				/*
-				let playing;
-				if (UI.localAudio) {
-					playing = !UI.localAudio.paused;
-					console.log(`Close eStimAudioConnection: ${STATE.estimAudioConnection} (Playing: ${playing})`);
-					if (STATE.estimAudioConnection) {
-						STATE.estimAudioConnection.close();
-						STATE.estimAudioConnection = null;
-
-						// Closing the connection does not necessarily inform the remote peer.
-						STATE.dataConn.send({ estimAudio: false });
-					}
-
-					const estimAudio = UI.localAudio.stream.getAudioTracks();
-					console.dir(estimAudio);
-					STATE.videoShare.addTrack(estimAudio[0]);
-				}
-				*/
-
-				// Close any existing connection
-				if (STATE.mediaConnection) STATE.mediaConnection.close();
-
-				// Open new connection
-				setupMediaConnection(STATE.peer.call(STATE.dataConn.peer, STATE.videoShare, { sdpTransform: webRTChelper.sdpVoice }));
-
-				// TODO: restart eStimAudio?
-				// if (playing) UI.localAudio.play();
+				if (STATE.mediaConnection) STATE.mediaConnection.close(); // Close any existing
+				setupMediaConnection(STATE.peer.call(STATE.dataConn.peer, STATE.videoShare));
 			}
 		} catch (e) {
 			if (
@@ -748,171 +684,18 @@ async function clickShare() {
 				(("OverconstrainedError" == e.name) && (e instanceof OverconstrainedError)) ||
 				((e instanceof Error) && ("NotFoundError" == e.name))
 			) {
-				showAlert('mediaMissing', e);
+				EWUtility.showAlert('mediaMissing', e);
 			} else if ((e instanceof DOMException) && ('NotAllowedError' == e.name)) {
-				showAlert('GUMCoach', e);
+				EWUtility.showAlert('GUMCoach', e);
 			} else throw e;
 		}
 	} else {
 		// Sharing active; stop
 		UI.localVideo.pause();
 		UI.localVideo.srcObject = null;
-		STATE.videoShare.getTracks().forEach(track => { track.stop(); });
+		AudioUI.stop(STATE.videoShare);
 		STATE.videoShare = null;
 		UI.localVideo.nextElementSibling.hidden = false;
 		UI.butShare.textContent = 'Share Audio/Video';
-	}
-}
-
-/*
-	AUDIO / VIDEO SETUP PANE
-*/
-
-// Test tones
-function testAudioOutput(e) {
-	const butTest = e.target;
-	butTest.classList.add('disabled');
-	const deviceToTest = butTest.previousElementSibling.getValue();
-	UI.audioUI.testTone(deviceToTest, () => { butTest.classList.remove('disabled'); });
-}
-
-// Microphone level
-async function testMicLevel(e) {
-
-	let constraints = { audio: parseDeviceSelector(UI.microphoneInput.getValue()) };
-	let audioStream = await navigator.mediaDevices.getUserMedia(constraints);
-	const butTest = e.target;
-	const meter = butTest.nextElementSibling;
-	meter.hidden = false;
-	UI.audioUI.testLevel(audioStream, meter);
-	butTest.classList.add('disabled');
-
-	UI.microphoneInput.addEventListener('change', async function () {
-		audioStream.getTracks().forEach(track => {
-			track.stop();
-			track.dispatchEvent(new Event("ended"));
-		});
-		constraints = { audio: parseDeviceSelector(UI.microphoneInput.getValue()) };
-		audioStream = await navigator.mediaDevices.getUserMedia(constraints);
-		UI.audioUI.testLevel(audioStream, meter);
-	});
-
-	UI.pnlConfigAV.addEventListener("beforehide", () => {
-		meter.hidden = true;
-		audioStream.getTracks().forEach(track => {
-			track.stop();
-			track.dispatchEvent(new Event("ended"));
-		});
-		audioStream = null;
-		butTest.classList.remove('disabled');
-	}, { once: true });
-
-}
-
-/*
-	UTILITIES
-*/
-
-// Extract alert text from page HTML and display it as a modal dialog.
-function showAlert(name, err) {
-
-	const e = document.querySelector(`.alert .${name}`);
-	if (!e) throw new Error(`Alert '${name}' not found in page HTML.`);
-	let h = e.innerHTML;
-	if (err) h += `<pre>${err}</pre>`;
-	return UIkit.modal.alert(h);
-}
-
-/*
-Configure a <select> element for each channel of the "split"
-mode, based on the current box configuration.
-*/
-function configureSplitSelect(selControl, currentMode, info) {
-	while (selControl.firstChild) {
-		selControl.removeChild(selControl.firstChild);
-	}
-	for (const boxMode in STATE.ctl.MODES) {
-		if ((boxMode <= info.TOPMODE) && STATE.ctl.SPLITMODES.includes(parseInt(boxMode))) {
-			const option = document.createElement("option");
-			option.value = boxMode;
-			option.text = STATE.ctl.MODES[boxMode];
-			if (currentMode == boxMode) option.selected = true;
-			selControl.appendChild(option);
-		}
-	}
-}
-
-// Configure the <range>, <span>/badge, and <button> elements within
-// a DIV to create an interactive slider control.
-function configureSlider(sliderDiv, inverse) {
-
-	const range = sliderDiv.querySelector('input[type="range"]');
-	sliderDiv.setRange = (low, high) => {
-		range.min = low;
-		range.max = high;
-	};
-	sliderDiv.setValue = (newValue) => {
-		range.value = (inverse) ? parseInt(range.max) - newValue + parseInt(range.min) : newValue;
-		range.was = parseInt(range.value);
-		console.log(`setValue: ${newValue} | ${range}`);
-		range.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-	};
-	sliderDiv.getValue = () => {
-		const curValue = parseInt(range.value);
-		return (inverse) ? parseInt(range.max) - curValue + parseInt(range.min) : curValue;
-	};
-	sliderDiv.setLimit = (limit) => {
-		range.limit = limit;
-		if (range.value > range.limit) range.setValue(limit);
-	};
-
-	const badge = sliderDiv.getElementsByClassName("uk-badge")[0];
-	range.addEventListener("input", (e) => {
-
-		// Any click changes the value by at most one step.
-		/*
-		.on('input', function () {
-    		var data = $(this).data();
-		    $(this).data({
-		        was: this.value = +data.was + (this.value > data.was || -1)
-		    });
-		}
-		*/
-
-		// Limit changes made by user input (e.g., clicking or dragging) to
-		// at most one step at a time.  This should NOT apply to changes
-		// made programatically (e.g., to set the slider to a box value).
-		if (e.isTrusted) {
-			const v = parseInt(range.value);
-			let was = parseInt(range.was);
-			console.log(`Before: Range value: ${v} (was: ${was})`);
-			range.value = was + (v > was || -1);
-			range.was = +range.value;
-			console.log(`After: Range value: ${range.value}`);
-		}
-
-		// Enforce maximum limit
-		if (range.limit && (range.value > range.limit)) {
-			console.log(`Value: ${range.value}; Limit: ${range.limit} [${sliderDiv}]`);
-			e.stopPropagation();
-			e.preventDefault();
-			range.value = range.limit;
-			sliderDiv.classList.toggle('atLimit', true);
-			setTimeout(() => { sliderDiv.classList.toggle('atLimit', false); }, 2250);
-		} else if (badge) badge.innerText = range.value;
-	}, { capture: true });
-
-	const upDown = sliderDiv.getElementsByTagName('button');
-	if (2 == upDown.length) {
-		upDown[0].addEventListener("click", (e) => {
-			range.stepDown();
-			range.dispatchEvent(new Event('input', { bubbles: true }));
-			range.dispatchEvent(new Event('change', { bubbles: true }));
-		});
-		upDown[1].addEventListener("click", (e) => {
-			range.stepUp();
-			range.dispatchEvent(new Event('input', { bubbles: true }));
-			range.dispatchEvent(new Event('change', { bubbles: true }));
-		});
 	}
 }

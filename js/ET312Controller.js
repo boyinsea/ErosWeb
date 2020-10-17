@@ -1,29 +1,23 @@
 'use strict';
-import { ET312Base } from './ET312.js';
+
+// Polyfill for Safari
+import EventTarget from 'https://unpkg.com/@ungap/event-target@latest/esm/index.js'
 
 /**
- * @classdesc Encapsulates higher-level ET-312 functions
+ * @classdesc Higher-level ET-312 functions, independent of communications medium.
  */
-class ET312Controller {
+class ET312ControllerBase extends EventTarget {
 
 	/**
 	 * Sets up an ET312 Controller object and initializes "static" structures.
 	 *
 	 * @constructor
 	 */
-	constructor(unit) {
+	constructor() {
 
-		for (const method of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
-			if ('constructor' !== method) this[method] = this[method].bind(this);
-		}
-
-		if (unit instanceof ET312Base) {
-			this._et312 = unit;
-		} else {
-			throw new Error(`Invalid object: expected ET312Base, got ${typeof(unit)}.`);
-		}
-
-		this.lastHeartbeat = 0;
+		super();
+		for (const method of Object.getOwnPropertyNames(Object.getPrototypeOf(this)))
+			if (('constructor' !== method) && this[method] && this[method].bind) this[method] = this[method].bind(this);
 
 		/*	CONSTANTS	*/
 
@@ -60,38 +54,27 @@ class ET312Controller {
 		this.POWERLEVEL = { 1: "Low", 2: "Normal", 3: "High" };
 
 		// This structure maps ET-312 memory addresses to friendly names.
-		// Properties tagged with "heartbeat: true" are included when sending a snapshot
-		// update of box status to a remote controller.
+		// Properties tagged with "heartbeat: true" are included when sending a
+		// "small" (vs. detailed) update of box status to a remote controller.
 
 		// TODO: Flag some of these as "readonly=true" as appropriate.
 		this.DEVICE = {
 			SYSTEMFLAGS: { address: 0x400f, description: "System Flags", heartbeat: true },
-			//		ADC0: { address: 0x4060, description: "Output Current Sense" },
 			ADC1: { address: 0x4061, description: "Multi-adjust knob position" },
 			ADC4: { address: 0x4064, description: "Level A Knob Position" },
 			ADC5: { address: 0x4065, description: "Level B Knob Position" },
 			ADC6: { address: 0x4066, description: "Audio Input Level A", heartbeat: true },
 			ADC7: { address: 0x4067, description: "Audio Input Level B", heartbeat: true },
 			MENUSTATE: { address: 0x406D, description: "Menu State" },
-			//		MENULOW: { address: 0x4079, description: "Lowest Selectable Menu Item/Mode" },
-			//		MENUHIGH: { address: 0x407A, description: "Highest Selectable Menu Item/Mode" },
 			MODENUM: { address: 0x407b, description: "Current mode number", heartbeat: true },
-			CONTROLFLAGS: { address: 0x4083, description: "Control Flags", heartbeat: true },
+			CONTROLFLAGS: { address: 0x4083, description: "Control Flags"},
 			RAMPVALUE: { address: 0x409c, description: "Ramp Value Counter", heartbeat: true },
 			RAMPSELECT: { address: 0x40a3, description: "Ramp Select", heartbeat: true },
-			//		SCRATCH: { address: 0x4093, description: "Overwritten with 0 when a program starts" },
 			BATTERYLEVEL: { address: 0x4203, description: "Battery Level (0-255)" },
 			MAVALUE: { address: 0x420d, description: "Multi-Adjust value" },
 			MALOW: { address: 0x4086, description: "Low end of Multi-Adjust range" },
 			MAHIGH: { address: 0x4087, description: "High end of Multi-Adjust range" },
 			POWERLEVEL: { address: 0x41f4, description: "Power Level" }, // 1 Low - 3 High
-			//		POWERA: { address: 0x406B, description: "Channel A Calibration" },
-			//		POWERB: { address: 0x406C, description: "Channel B Calibration" },
-			//		BATTERY: { address: 0x4203, description: "Battery Level (at boot)" },
-			//		AGATE: { address: 0x4090, description: "Channel A Current Gate Value" },
-			//		BGATE: { address: 0x4190, description: "Channel B Current Gate Value" }, // 0 when no output
-			//		AINTENSITY: { address: 0x40a5, description: "Channel A Current Intensity Modulation Value" },
-			//		BINTENSITY: { address: 0x41a5, description: "Channel B Current Intensity Modulation Value" },
 			TOPMODE: { address: 0x41f3, description: "Highest available mode number" },
 			SPLITA: { address: 0x41f5, description: "Split Mode Number A" },
 			SPLITB: { address: 0x41f6, description: "Split Mode Number B" },
@@ -106,262 +89,98 @@ class ET312Controller {
 			// 0x01 = Battery available; 0x02 = Power supply available
 			POWERSTATUS: { address: 0x4215, description: "Power Status Bits" }
 		};
+		for (const n in this.DEVICE) this.DEVICE[n].name = n;
 
-		/*
-		SYSTEM FLAGS
-		Bit	Description
-		0	Disable ADC (pots etc) (SYSTEMFLAGPOTSDISABLEMASK)
-		1	If set then we jump to a new module number given in $4084
-		2	Can this program be shared with a slave unit
-		3	Disable Multi Adjust (SYSTEMFLAGMULTIAPOTDISABLEMASK)
-		4-7	unused
-		If bit 0 is set the ADC data is ignored, so effectively disabling the the front panel potentiometers.
-		You can then send commands to change the A, B, and MA levels directly.
-		Enabling again sets the unit back to the actual potentiometer values.
-
-		To set the A level write to $4064 (CurrentLevelA 0-255),
-		to set the B level write to $4065 (CurrentLevel B 0-255),
-		to set the MA write to $420D (Current Multi Adjust Value, range from min at $4086 to max at $4087).
-
-		CONTROL FLAGS
-		Phase, Front Panel, Mute/Mono/Stereo Control
-		Value	Description
-		0x01	Phase Control
-		0x02	Mute
-		0x04	Phase Control 2
-		0x08	Phase Control 3
-		0x20	Disable Frontpanel Switches
-		0x40	Mono Mode (off=Stereo)
-		Note: ErosLink uses the following masks:
-
-		0x00 - CONTROLFLAGNORMALMASK
-		0x04 - CONTROLFLAGALLOWOVERLAPMASK
-		0x05 - CONTROLFLAGPHASEMASK
-		0x20 - CONTROLFLAGDISABLESWITCHESMASK
-		*/
-	}
-
-	// Retrieve current box status.
-	// heartbeat
-	//	false or NULL = returns complete status data
-	//	true = always returns concise heartbeat data
-	//  number = returns concise heartbeat data IF sufficient time has
-	//		elapsed since the last heartbeat request, otherwise returns
-	//		NULL.
-	async getInfo(heartbeat) {
-		let result = { heartbeat: Boolean(heartbeat) };
-		if ('number' == typeof (heartbeat)) {
-			if ((Date.now() - this.lastHeartbeat) < heartbeat) return null;
-		}
-		for (const property in this.DEVICE) {
-			if (!heartbeat || (result.heartbeat == this.DEVICE[property].heartbeat))
-				result[property] = await this.getValue(property);
-		}
-		if (heartbeat) this.lastHeartbeat = Date.now();
-		return result;
-	}
-
-	// Writes the given command(s) to address 0x4070, waiting
-	// at least 20ms for each command to execute.
-	async executeCommands(commands) {
-		const values = await Promise.all([
-			this._et312.writeAddress(0x4070, commands),
-			new Promise((resolve, _) => { setTimeout(resolve, 20 * commands.length); })
-		]);
-		return values[0];
-	}
-
-	async getValue(property) {
-		if ('object' != typeof (property)) property = this.DEVICE[property];
-		console.log(`getValue ${JSON.stringify(property)}`);
-		const v = await this._et312.readAddress(property.address);
-		console.log(`Value: ${v}`);
-		return v;
-	}
-
-	// Write a value to the indicated address, which
-	// can either be a DEVICE.property "enumeration" value or a numeric
-	// address.
-	// Returns true if the value was written successfully
-	async setValue(property, value) {
-		console.log(`setValue ${JSON.stringify(property)} = ${value}`);
-
-		let address;
-		if ('object' == typeof (property)) address = property.address;
-		else if ('number' == typeof (property)) address = property;
-		else address = this.DEVICE[property].address;
-		if (!(value instanceof Array)) value = [value];
-		const retVal = await this._et312.writeAddress(address, value);
-		return ((retVal instanceof Uint8Array) && (6 == retVal[0]));
-	}
-
-	async getMode() {
-		const mode = await this._et312.readMode();
-		return this.MODES[mode];
-	}
-
-	// Special protocol for changing Mode aka running program.
-	// This has to be done with a box command, as the "current running mode"
-	// address is read-only.
-	//
-	// Changing the mode also changes the multi-adjust range and current value
-	// (each program has a different m-a range).  If front-panel controls are
-	// disabled (e.g., box is being remote controlled), we reset the range
-	// to it's midpoint to prevent unintended consequences.
-	//
-	//		An alternative implementation would be to calculate the scale
-	//		position of the (virtual) "knob" as it is before the mode change,
-	//		then set the same position relative to the range of the new mode.
-	//		This would more closely mimic the hardware behavior.
-	async setMode(newMode) {
-		if (!Number.isInteger(newMode)) {
-			throw new Error(`Cannot set mode ${newMode}.  Expected integer, got ${typeof(newMode)}.`);
-		}
-		if ((0x8d != newMode) && ((0 == newMode) || (false == this.MODES.hasOwnProperty(newMode)))) {
-			throw new Error(`Invalid Mode: ${newMode}`);
-		}
-		console.log(`Setting mode ${newMode}`);
-		let result = await this._et312.writeAddress(0x4078, [newMode]);
-		// console.log(`Result: ${result}; sending change mode command.`);
-		result = await this.executeCommands([0x12]);
-		// console.log(`Result: ${result}; retrieving heartbeat values...`);
-		result = await this.getInfo(false);
-		// console.log(`Result: ${result}`);
-		if (0x01 & result.SYSTEMFLAGS) {
-			let newMAVALUE = Math.round((result.MAHIGH - result.MALOW) / 2);
-			console.log(`Remote control is active.  Setting multi-adjust value to ${newMAVALUE}`);
-			await this.setValue(this.DEVICE.MAVALUE, [newMAVALUE]);
-			// Fix up MAVALUE in result value so UI is correct
-			result.MAVALUE = newMAVALUE;
-		}
-		// console.log('Done.');
-
-
-		// ET-312 won't update it's display on a mode change command, so we need
-		// to do this manually.  No need to wait for this to complete.  This
-		// doesn't do anything in the case of a non-existent mode (ala STOP).
-		if (newMode <= result.TOPMODE) this.display_mode_name(newMode);
-
-		return result;
-	}
-
-	//	Set Power Level 1-3 (0x6b = low, etc.)
-	// 	This must be done with a box command; the power level cannot
-	//	be updated directly.
-	//	Box must be running a program (mode), otherwise an error occurs.
-	async setPowerLevel(newLevel) {
-		const mode = await this.getValue(this.DEVICE.MODENUM);
-		if (mode == 0) {
-			console.warn('Bad state for setting power level.');
-			return null;
-		}
-		console.log(`Setting power level ${newLevel}`);
-		let result = await this._et312.writeAddress(0x4078, [0x6a + newLevel]);
-		result = await this.executeCommands([0x06]);
-		result = await this.getValue(this.DEVICE.POWERLEVEL);
-		console.log(result);
-		return { POWERLEVEL: result };
-	}
-
-	// Invoke box function to start power ramp
-	async startRamp() {
-		await this.executeCommands([0x21]);
-		const result = {
-			RAMPSELECT: await this.getValue(this.DEVICE.RAMPSELECT),
-			RAMPVALUE: await this.getValue(this.DEVICE.RAMPVALUE)
+		this.COMMAND = {
+			setMode: null,
+			setPowerLevel: null,
+			startRamp: null,
+			stop: null
 		};
-		return result;
 	}
 
-	// Immediately stop stim output by changing to a non-existent mode
-	async stop() {
-		let result = await this.setMode(0x8d);
-		this.display_mode_name('-PAUSED-');
-		return result;
+	// Open a connection to the box. Connection type is based on subclass.
+	async connect() {
+		throw new Error('Subclass should implement open()!');
 	}
 
-	// Clear the mode name in the display
-	async display_clear_mode_name() {
-		this._et312.writeAddress(0x4180, [0x64]); // Stringtable index
-		this._et312.executeCommands([0x15]); // Write stringtable entry to display
+	// Gracefully close the connection to the box
+	async close() {
+		throw new Error('Subclass should implement close()!');
 	}
 
-	// Write a message to the display.
-	// Line 0-1, Position 0-15
-	async display_write(message, line = 0, start = 0) {
-		if ((message.length < 1) || (message.length > 16))
-			throw new Error('Display message must be 1-16 characters long');
-		if ((line < 0) || (line > 1))
-			throw new Error('Line must be either 0 or 1');
-		if ((start < 0) || (start > 15))
-			throw new Error('Starting position must be between 0 and 15');
-		if (message.length + start > 16)
-			throw new Error('Message is too long to write at that position');
-		// console.log(`Begin display write [${message}]`);
+	// Report whether or not a box is connected.
+	get connected() {
+		throw new Error('Subclass should implement get connected()!');
+	}
 
-		for (let pos = 0; pos < message.length; pos++) {
-			// console.log(`${pos} = ${message.charAt(pos)}`);
-			await this._et312.writeAddress(0x4180, [message.charCodeAt(pos), start + pos + (line << 6)]);
-			// console.log('Sending WRITE command');
-			await this.executeCommands([0x13]);
+	// Request a snapshot of box status.  If “detailed” is TRUE, a comprehensive status report is returned.
+	// Otherwise, returns a brief status report containing only variables that are likely to change.
+	async requestStatus(detailed) {
+		throw new Error('Subclass should implement getStatus()!');
+	}
+
+	// Sets the indicated parameter to the supplied value.  Value is scalar.
+	async setValue(parameter, value) {
+		throw new Error('Subclass should implement setValue()!');
+	}
+
+	// Execute a box-specific command
+	async execute(command, parameters) {
+		throw new Error('Subclass should implement execute()!');
+	}
+
+
+	/*
+		I N T E R N A L   F U N C T I O N S
+	*/
+
+	// Emit a "status" message containing the result of a command
+	_shareResult(result) {
+		if (result) this.dispatchEvent(new CustomEvent('status', { detail: result }));
+	}
+
+	// Validate a property name or value and return the corresponding
+	// ET-312 memory address.
+	_propertyAddress(property, write = false) {
+
+		let pd = property;
+		if ('number' == typeof (property)) return property;
+		if ('string' == typeof (property)) pd = this.DEVICE[property];
+		if (!pd) throw new Error(`Invalid property ${property}`);
+		if (write && pd.readonly) throw new Error(`setValue: Property ${property} is read-only.`);
+		return pd.address;
+	}
+
+	// Raise an "error" event.  Calls to API functions should raise error events if they fail;
+	// internal methods should throw errors for flow-control purposes and so they can be be
+	// caught and processed appropriately.
+	_raiseError(err, msg) {
+		this.dispatchEvent(new ErrorEvent('error', {
+			error: err,
+			message: msg || err.message
+		}));
+	}
+
+	/*
+		UTILITIES
+	*/
+
+	// Configure a <select> element for each channel of the "split"
+	// mode, based on the current box configuration.
+	configureSplitSelect(selControl, currentMode, topMode) {
+		selControl.options.length = 0; // Get rid of any existing options in selector
+
+		for (const mode of this.SPLITMODES) {
+			if (mode <= topMode) {
+				const option = document.createElement("option");
+				option.value = mode;
+				option.text = this.MODES[mode];
+				option.selected = (currentMode == mode);
+				selControl.appendChild(option);
+			}
 		}
-	}
-
-	// Display a standard mode name from stringtable
-	async display_mode_name(mode) {
-
-		if ('string' == typeof (mode)) {
-			let text = mode.substring(0, 8);
-			await this.display_write(text.padEnd(8), 0, 8);
-		} else {
-			// Mode number is just a stringtable offset.
-			await this._et312.writeAddress(0x4180, [mode]);
-			await this.executeCommands([0x15]);
-		}
-	}
-
-	// Return true or false depending on whether or not this module has control
-	// of the front-panel LEVEL and MULTI-ADJUST controls
-	async hasControl() {
-		const flags = await this.getValue(this.DEVICE.SYSTEMFLAGS);
-		return Boolean(flags & 0x01);
-	}
-
-	// Take (status = true) or relinquish (status=false) control of LEVELS and MULTI-ADJUST.
-	// Returns a box info object with a snapshot of current status, as well as the Promise for
-	// the LCD update operation.  Calling functions can optionally wait for the display update
-	// to complete.
-	async takeControl(status) {
-		console.log(`takeControl: ${status}`);
-		let flags = await this.getValue(this.DEVICE.SYSTEMFLAGS);
-		let newFlags = flags;
-		if (status)
-			newFlags |= 0x01;
-		else
-			newFlags &= ~0x01;
-		console.log(`current flags: ${flags} => updated flags: ${newFlags}`);
-
-		if (newFlags != flags) {
-			await this.setValue(this.DEVICE.SYSTEMFLAGS, [newFlags]);
-			console.log(`flags reset.`);
-		}
-
-		// Get snapshot of box status.
-		const info = await this.getInfo();
-
-		// Asynchronously update the BOX UI on change to let the user know
-		// what is going on.  Do not wait for this to complete because display
-		// writes take a long time.
-		let P;
-		// if (status)
-		// 	P = this.display_write("\x7eErosWeb Control", 1, 0);
-		// else
-		// 	P = this.display_write("\x7eLocal Control".padEnd(16), 1, 0);
-
-		console.log(info);
-		// console.log(P);
-		return { info, P };
 	}
 }
 
-export { ET312Controller };
+export { ET312ControllerBase };
