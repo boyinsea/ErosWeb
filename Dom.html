@@ -30,7 +30,7 @@
 					<span id="heading" class="uk-navbar-item uk-text-lead">ErosWeb – ET-312 Remote Control</span>
 				</div>
 				<div class="uk-navbar-right">
-					<a href="#pnlConfigAV" class="uk-navbar-item uk-icon" uk-icon="cog" uk-toggle uk-tooltip="Configure audio output, camera, and microphone."></a>
+					<a href="#pnlConfig" class="uk-navbar-item uk-icon" uk-icon="cog" uk-toggle uk-tooltip="Configure audio/video settings and user interface."></a>
 					<span class="uk-navbar-item"><b>Dom</b>&nbsp;Mode</span>
 				</div>
 			</div>
@@ -55,58 +55,75 @@
 			</div>
 
 			<div uk-grid class="uk-grid-collapse" uk-height-viewport="offset-top: true">
-				<!-- <a href="#pnlAdvanced" uk-toggle uk-tooltip="Advanced Controls">Advanced</a> -->
 
 				<form id="controls" class="uk-card uk-card-small uk-card-body uk-form-horizontal uk-width-2-5 uk-padding-remove-right uk-padding-remove-top">
 
-					<div id="controlsOnline" class="uk-margin-small-bottom">
+					<div id="controlsOnline" class="uk-margin-small-bottom disabled">
 
-						<div id="modeArray" uk-grid class="uk-grid-collapse uk-child-width-1-3 uk-grid uk-margin-small-bottom">
-							<button class="uk-button uk-padding-remove uk-button-danger" value="0">Stop!</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="118">Waves</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="119">Stroke</button>
+						<div class="uk-text-center">
+							<span uk-icon="icon: triangle-up"></span>
+						</div>
+						<div class="uk-overflow-auto">
+							<div id="modeArray" uk-grid class="uk-grid-collapse uk-child-width-1-3 uk-grid">
 
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="120">Climb</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="121">Combo</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="122">Intense</button>
+								<button class="uk-button uk-padding-remove uk-button-danger" value="0">Stop!</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="118">Waves</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="119">Stroke</button>
 
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="123">Rhythm</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="128">Random1</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="129">Random2</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="120">Climb</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="121">Combo</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="122">Intense</button>
 
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="130">Toggle</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="131">Orgasm</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="132">Torment</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="123">Rhythm</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="128">Random1</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="129">Random2</button>
 
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="133">Phase 1</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="134">Phase 2</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="135">Phase 3</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="130">Toggle</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="131">Orgasm</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary" value="132">Torment</button>
 
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="124">Audio 1</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="125">Audio 2</button>
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="126">Audio 3</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary phase" value="133">Phase 1</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary phase" value="134">Phase 2</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary phase" value="135">Phase 3</button>
 
-							<button class="uk-button uk-padding-remove uk-button-secondary" value="127">Split &rarr;</button>
-							<div uk-form-custom="target: > * > span:first-child" uk-tooltip="Program for Channel A in Split mode">
-								<select id="selSplitA">
-									<option value="" disabled></option>
-								</select>
-								<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
-									<span></span>
-									<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
-									<span>A</span>
-								</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary audio" value="124">Audio 1</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary audio" value="125">Audio 2</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary audio" value="126">Audio 3</button>
+
+								<button class="uk-button uk-padding-remove uk-button-secondary user" value="136">User 1</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary user" value="137">User 2</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary user" value="138">User 3</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary user" value="139">User 4</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary user" value="140">User 5</button>
+								<button class="uk-button uk-padding-remove uk-button-secondary user" value="141">User 6</button>
+
+								<div class="grid-break"></div>
+
+								<button class="uk-button uk-padding-remove uk-button-secondary split" value="127">Split &rarr;</button>
+								<div class="split" uk-form-custom="target: > * > span:first-child" uk-tooltip="Program for Channel A in Split mode">
+									<select id="selSplitA">
+										<option value="" disabled></option>
+									</select>
+									<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
+										<span></span>
+										<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
+										<span>A</span>
+									</button>
+								</div>
+								<div class="split" uk-form-custom="target: > * > span:first-child" uk-tooltip="Program for Channel B in Split mode">
+									<select id="selSplitB">
+										<option value="" disabled></option>
+									</select>
+									<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
+										<span></span>
+										<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
+										<span>B</span>
+									</button>
+								</div>
 							</div>
-							<div uk-form-custom="target: > * > span:first-child" uk-tooltip="Program for Channel B in Split mode">
-								<select id="selSplitB">
-									<option value="" disabled></option>
-								</select>
-								<button class="uk-button uk-width-1-1" type="button" tabindex="-1">
-									<span></span>
-									<span uk-icon="icon: chevron-down; ratio: 0.75"></span>
-									<span>B</span>
-								</button>
-							</div>
+						</div>
+						<div class="uk-text-center">
+							<span uk-icon="icon: triangle-down"></span>
 						</div>
 
 						<div class="uk-display-inline-block uk-width-1-1 uk-text-middle">
@@ -120,24 +137,24 @@
 						</div>
 
 						<!-- Analog-to-digital controls on the box -->
-						<div id="levelMultiAdjust" class="uk-grid-collapse uk-grid" uk-grid>
-							<div class="uk-width-1-5">
+						<div id="levelMultiAdjust" class="uk-grid-collapse uk-grid slider" uk-grid>
+							<div>
 								<label class="uk-form-label">Multi-Adjust</label>
 							</div>
 							<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
 							<input class="uk-range uk-width-expand" type="range" />
 							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
 						</div>
-						<div id="levelA" class="uk-grid-collapse uk-grid" uk-grid>
-							<div class="uk-width-1-5">
+						<div id="levelA" class="uk-grid-collapse uk-grid slider" uk-grid>
+							<div>
 								<label class="uk-form-label" for="levelA">Level A<span class="uk-badge uk-margin-small-left"></span></label>
 							</div>
 							<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
 							<input class="uk-range uk-width-expand" type="range" min="0" max="99" />
 							<button class="uk-padding-left uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: plus"></button>
 						</div>
-						<div id="levelB" class=" uk-grid-collapse uk-grid" uk-grid>
-							<div class="uk-width-1-5">
+						<div id="levelB" class="uk-grid-collapse uk-grid slider" uk-grid>
+							<div>
 								<label class="uk-form-label" for="levelB">Level B<span class="uk-badge uk-margin-small-left"></span></label>
 							</div>
 							<button class="uk-button uk-button-default uk-button-small uk-form-width-xsmall" uk-icon="icon: minus"></button>
@@ -231,117 +248,144 @@
 				<input id="inputRampTime" class="uk-input uk-form-small uk-width-1-4" type="number" min="1" max="120" step="1" maxlength="3">
 				<span class="uk-margin-small-left">seconds</span>
 			</div>
+
+
+		</div>
+	</div>
+
+	<!-- Slide-in area for adjusting audio and video settings -->
+	<div id="pnlConfig" uk-offcanvas="overlay: true">
+		<div class="uk-offcanvas-bar">
+			<button class="uk-offcanvas-close" type="button" uk-close></button>
+
+			<h3 class="uk-margin-remove-top">Communications</h3>
+			<p class="uk-text-emphasis uk-margin-remove-bottom">Audio Output <span class="uk-label click">Test</span></p>
+			<div id="localAudioDest">
+				<div uk-form-custom="target: > * > span:last-child">
+					<select uk-tooltip="Select output device">
+					</select>
+					<span class="uk-link">
+						<span uk-icon="icon: receiver"></span>
+						<span></span>
+					</span>
+				</div>
+			</div>
+
+			<p class="uk-text-emphasis uk-margin-remove-bottom">Camera</p>
+			<div id="cameraInput">
+				<div uk-form-custom="target: > * > span:last-child">
+					<select uk-tooltip="Select output device">
+					</select>
+					<span class="uk-link">
+						<span uk-icon="icon: video-camera"></span>
+						<span></span>
+					</span>
+				</div>
+			</div>
+
+			<p class="uk-text-emphasis uk-margin-remove-bottom">Microphone <span class="uk-label click">Test</span>
+			</p>
+			<div id="microphoneInput">
+				<div uk-form-custom="target: > * > span:last-child">
+					<select uk-tooltip="Select output device">
+					</select>
+					<span class="uk-link">
+						<span uk-icon="icon: microphone"></span>
+						<span></span>
+					</span>
+				</div>
+			</div>
+			<progress id="microphoneLevel" value="0" max="100" hidden></progress>
+
+			<p class="uk-text-emphasis uk-margin-remove-bottom">E-stim Audio Monitor
+				<span class="uk-label click">Test</span></p>
+			<div id="estimAudioDest">
+				<div uk-form-custom="target: > * > span:last-child">
+					<select>
+					</select>
+					<span class="uk-link">
+						<span uk-icon="icon: sign-out"></span>
+						<span></span>
+					</span>
+				</div>
+			</div>
+
+			<h3 class="uk-text-emphasis uk-margin-remove-bottom">Mode Selection</h3>
+			<p class="uk-text-small uk-margin-remove">Choose which ET-312 mode-selection buttons to show.</p>
+
+			<div id="modeSelect" class="uk-margin-small uk-text-middle uk-child-width-1-2 uk-grid-collapse uk-grid" uk-grid>
+				<label><input name="phase" class="uk-checkbox" type="checkbox" checked> Tri-Phase</label>
+				<label><input name="audio" class="uk-checkbox" type="checkbox" checked> Audio</label>
+				<label><input name="user" class="uk-checkbox" type="checkbox" checked> User</label>
+				<label><input name="split" class="uk-checkbox" type="checkbox" checked> Split</label>
+			</div>
+			<hr />
+			<label><input id="modeScroll" class="uk-checkbox" type="checkbox"> Scroll mode-selection buttons.</label>
+
+		</div>
+	</div>
+
+	<!-- Modal Dialogs -->
+	<div class="alert">
+		<div class="connectionRefused">
+			<b class="uk-text-warning">Connection Refused</b>
+			<ul>
+				<li>Verify the PIN or URL for this session with the sub.</li>
+				<li>Check that the PIN is entered correctly.</li>
+			</ul>
 		</div>
 
-		<!-- Slide-in area for adjusting audio and video settings -->
-		<div id="pnlConfigAV" uk-offcanvas="overlay: true">
-			<div class="uk-offcanvas-bar">
-				<button class="uk-offcanvas-close" type="button" uk-close></button>
-
-				<h3>Communications Settings</h3>
-				<p class="uk-text-emphasis uk-margin-remove-bottom">Audio Output</p>
-				<div id="localAudioDest">
-					<div uk-form-custom="target: > * > span:last-child">
-						<select>
-						</select>
-						<span class="uk-link">
-							<span uk-icon="icon: receiver"></span>
-							<span></span>
-						</span>
-					</div>
-				</div>
-				<span class="uk-label click">Test</span>
-
-				<p class="uk-text-emphasis uk-margin-remove-bottom">Camera</p>
-				<div id="cameraInput">
-					<div uk-form-custom="target: > * > span:last-child">
-						<select>
-						</select>
-						<span class="uk-link">
-							<span uk-icon="icon: video-camera"></span>
-							<span></span>
-						</span>
-					</div>
-				</div>
-
-				<p class="uk-text-emphasis uk-margin-remove-bottom">Microphone</p>
-				<div id="microphoneInput">
-					<div uk-form-custom="target: > * > span:last-child">
-						<select>
-						</select>
-						<span class="uk-link">
-							<span uk-icon="icon: microphone"></span>
-							<span></span>
-						</span>
-					</div>
-				</div>
-				<span class="uk-label click">Test</span>
-				<progress id="microphoneLevel" value="0" max="100" hidden />
-
-			</div>
+		<div class="connectionFailed">
+			<b class="uk-text-danger">Connection Failed</b>
+			<ul>
+				<li>Verify the URL for this session with the sub.</li>
+				<li>Check that the Session ID is correct (the Session ID is Case Sensitive).</li>
+				<li>Make sure the sub is still presenting themselves for control by a remote user.</li>
+				<li>Try connecting again.</li>
+			</ul>
 		</div>
 
-		<!-- Modal Dialogs -->
-		<div class="alert">
-			<div class="connectionRefused">
-				<b class="uk-text-warning">Connection Refused</b>
-				<ul>
-					<li>Verify the PIN or URL for this session with the sub.</li>
-					<li>Check that the PIN is entered correctly.</li>
-				</ul>
-			</div>
-
-			<div class="connectionFailed">
-				<b class="uk-text-danger">Connection Failed</b>
-				<ul>
-					<li>Verify the URL for this session with the sub.</li>
-					<li>Check that the Session ID is correct (the Session ID is Case Sensitive).</li>
-					<li>Make sure the sub is still presenting themselves for control by a remote user.</li>
-					<li>Try connecting again.</li>
-				</ul>
-			</div>
-
-			<div class="welcomeNoBox">
-				<b class="uk-text-danger">ET-312 Not Linked</b>
-				<p>You have successfully connected, but remote control is not enabled
-					because the sub has not linked an ET-312 box.</p>
-				<p>You can still share audio and video with the sub, and select an audiostim file.</p>
-				<p>Remote control will be automatically enabled once the sub links a box.</p>
-			</div>
-
-			<div class="mediaMissing">
-				<b class="uk-text-danger">Missing Media Device</b>
-				<p>ErosWeb was not able to access an audio or video device needed for sharing.</p>
-				<ul>
-					<li>Make sure your webcam or other device is connected and turned on.</li>
-					<li>If using a built-in camera, make sure it is enabled.</li>
-					<li>Check your communication settings (click on the <span class="uk-icon" uk-icon="cog"></span>
-						icon in the page header).</li>
-					<li>Is your laptop open?</li>
-				</ul>
-			</div>
-
-			<!-- Modal dialog to coach the user on enabling access to A/V devices -->
-			<div class="GUMCoach">
-				<h3 class="uk-modal-title uk-text-danger">Device Access Blocked</h3>
-				<p>ErosWeb cannot share audio and video because you have blocked access to the
-					camera and/or microphone.</p>
-				<p>To fix this, go to the security settings in your browser:</p>
-				<ul>
-					<li>In <b>Google Chrome</b>
-						<ol>
-							<li>Navigate to <code>chrome://settings/content</code></li>
-							<li>Check both the "microphone" and "camera" sections</li>
-							<li>Reset permissions for the site
-								<code textContent="document.location.origin"></code>
-							</li>
-						</ol>
-					</li>
-					<li>In <b>Safari</b>, go to the <code>Safari | Settings for This Website...</code> menu on MacOS,
-						or access "Website Settings" via the "<b><span style="font-size: 75%">A</span></b>A" button in the address bar on iOS.</li>
-				</ul>
-			</div>
+		<div class="welcomeNoBox">
+			<b class="uk-text-danger">ET-312 Not Linked</b>
+			<p>You have successfully connected, but remote control is not enabled
+				because the sub has not linked an ET-312 box.</p>
+			<p>You can still share audio and video with the sub, and select an audiostim file.</p>
+			<p>Remote control will be automatically enabled once the sub links a box.</p>
 		</div>
+
+		<div class="mediaMissing">
+			<b class="uk-text-danger">Missing Media Device</b>
+			<p>ErosWeb was not able to access an audio or video device needed for sharing.</p>
+			<ul>
+				<li>Make sure your webcam or other device is connected and turned on.</li>
+				<li>If using a built-in camera, make sure it is enabled.</li>
+				<li>Check your communication settings (click on the <span class="uk-icon" uk-icon="cog"></span>
+					icon in the page header).</li>
+				<li>Is your laptop open?</li>
+			</ul>
+		</div>
+
+		<!-- Modal dialog to coach the user on enabling access to A/V devices -->
+		<div class="GUMCoach">
+			<h3 class="uk-modal-title uk-text-danger">Device Access Blocked</h3>
+			<p>ErosWeb cannot share audio and video because you have blocked access to the
+				camera and/or microphone.</p>
+			<p>To fix this, go to the security settings in your browser:</p>
+			<ul>
+				<li>In <b>Google Chrome</b>
+					<ol>
+						<li>Navigate to <code>chrome://settings/content</code></li>
+						<li>Check both the "microphone" and "camera" sections</li>
+						<li>Reset permissions for the site
+							<code textContent="document.location.origin"></code>
+						</li>
+					</ol>
+				</li>
+				<li>In <b>Safari</b>, go to the <code>Safari | Settings for This Website...</code> menu on MacOS,
+					or access "Website Settings" via the "<b><span style="font-size: 75%">A</span></b>A" button in the address bar on iOS.</li>
+			</ul>
+		</div>
+	</div>
 
 </body>
 
