@@ -398,8 +398,6 @@ function createPeerConnection(name) {
 	// Save connectoid and set up handlers for important events.
 	P.on('connection', (dataConnection) => {
 
-		console.log(`Data Connection: ${dataConnection.connectionId}`);
-
 		// If a data connection is already open to another Dom, reply with an error
 		// when the connection opens.  This will cause the remote DOM to close the
 		// connection.  Do not respond to any other events in this case.

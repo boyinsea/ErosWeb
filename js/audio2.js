@@ -10,7 +10,7 @@ class AudioUI {
 
 		const dcr = Object.getOwnPropertyDescriptors(Object.getPrototypeOf(this));
 		for (const method in dcr)
-			if (('constructor' !== method) && !dcr[method].get) this[method] = this[method].bind(this);
+			if (('constructor' !== method) && !(dcr[method].get || dcr[method].set)) this[method] = this[method].bind(this);
 
 		this._audioCtx = null;
 		this._allowReconfiguration = false;
