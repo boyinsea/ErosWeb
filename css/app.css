@@ -1,8 +1,3 @@
-@font-face {
-	font-family: "Roboto";
-	src: url("../fonts/Roboto-Medium.ttf") format("ttf");
-}
-
 [uk-form-custom]>button {
 	font-size: 75%;
 	padding-left: 15px;
@@ -106,6 +101,12 @@ form#controls {
 form#controls div.disabled {
 	opacity: 0.5;
 	pointer-events: none;
+}
+
+input#inputSId {
+	font-family: "Roboto Mono", Consolas, Courier, "Courier New", "Lucida Console", Monaco, monospace !important;
+	width: 6.5em;
+	font-size: 110%;
 }
 
 input#inputPIN {

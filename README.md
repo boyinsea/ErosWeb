@@ -29,7 +29,7 @@ An ErosWeb scene is potentially very much like an in-person scene involving the 
 3. [Appropriate hardware][connect] to connect the ET-312 to the computer.
 4. Latest version of [Google Chrome][chrome] or Microsoft Edge.
 
-Chrome or Edge does not need to be the default browser.  However, ErosWeb sub mode relies on the [Web Serial API](https://github.com/WICG/serial/blob/gh-pages/EXPLAINER.md) to control the ET-312.  As of August 2020, this feature is only available in Chrome and Edge, so one of these browsers **must** be used to run the sub page.
+Chrome or Edge does not need to be the default browser.  However, ErosWeb sub mode relies on the [Web Serial API](https://github.com/WICG/serial/blob/gh-pages/EXPLAINER.md) to control the ET-312.  Only Chrome and Edge offer this feature as of October 2020, so one of these browsers **must** be used when running the sub page.
 
 ### **Dom** – _one_ of the following:
 * Mac running [the latest version of Chrome][chrome] (recommended), Safari, or Firefox.
@@ -42,7 +42,7 @@ Running ErosWeb on a small-screen device like a phone is not recommended.
 
 Product and company names mentioned herein may be trademarks of their respective owners.
 
-ErosWeb is free open source software provided under the [Apache License](http://www.apache.org/licenses/LICENSE-2.0).  Connectivity is via [PeerJS](https://peerjs.com).  The software relies extensively on [Metafetish](https://stpihkal.docs.buttplug.io/hardware/erostek-et312b.html) for documentation of the ET-312 control protocol and the [buttshock project](https://github.com/buttshock) (most recent repo [here](https://github.com/nannook206/buttshock-py)) for practical code examples involving the ET-312.  Future work could include contributing the ET-312 and WebSerial support to something like [buttplug](https://https://buttplug.io/) and enabling generic control, but for now the focus has been on getting a remote ET-312 scene (with box control, estim audio, and video chat) working in a browser.  Future efforts will definitely include code cleanup and re-architecture now that the intricacies and interactions between WebRTC, WebSerial, PeerJS, audio playback, and the ET-312 protocol itself are better understood (yes, the code right now is a mess and I am not proud of it).
+ErosWeb is free open source software provided under the [Apache License](http://www.apache.org/licenses/LICENSE-2.0).  Connectivity is via [PeerJS](https://peerjs.com).  The software relies extensively on [Metafetish](https://stpihkal.docs.buttplug.io/hardware/erostek-et312b.html) for documentation of the ET-312 control protocol and the [buttshock project](https://github.com/buttshock) (most recent repo [here](https://github.com/nannook206/buttshock-py)) for some practical code examples involving the ET-312.  Future work could include contributing the ET-312 and WebSerial support to something like [buttplug](https://https://buttplug.io/) and enabling generic control, but for now the focus has been on getting a remote ET-312 scene (with box control, estim audio, and video chat) working in a browser.
 
 I credit [smealum](https://www.youtube.com/watch?v=CsQ2VWEfduM) and [JustTryingToPlease](https://www.recon.com/JustTryingToPlease) for inspiring me to dabble in teledildonics.  The ErosWeb feature set is modeled after eStim scenes I've enjoyed with experienced players like [nnflyboy]( https://www.recon.com/nnflyboy) and [ncx180](https://www.recon.com/ncx180).
 

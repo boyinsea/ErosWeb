@@ -70,6 +70,7 @@ class EWUtility {
 
 		sliderDiv.setLimit = (limit) => {
 			range.limit = limit;
+			if (0 == limit) return;	// zero means "no limit"; dont' change value.
 			if (range.value > range.limit) sliderDiv.setValue(limit);
 		};
 
