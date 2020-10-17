@@ -16,8 +16,9 @@ class ET312ControllerBase extends EventTarget {
 	constructor() {
 
 		super();
-		for (const method of Object.getOwnPropertyNames(Object.getPrototypeOf(this)))
-			if (('constructor' !== method) && this[method] && this[method].bind) this[method] = this[method].bind(this);
+		const dcr = Object.getOwnPropertyDescriptors(Object.getPrototypeOf(this));
+		for (const method in dcr)
+			if (('constructor' !== method) && !dcr[method].get) this[method] = this[method].bind(this);
 
 		/*	CONSTANTS	*/
 

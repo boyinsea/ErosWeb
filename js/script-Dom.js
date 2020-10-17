@@ -465,6 +465,13 @@ function refreshUI(e) {
 	}
 }
 
+// Connect to the peer indicated by |destId| and return the
+// Peer object.  Define handler functions for callbacks, such
+// as the connection opening and data being received from the
+// remote peer.
+//
+//	|destId| is case-insensitive; "-" characters are ignored.
+//
 function createPeerConnection(destId) {
 
 	// https://elements.heroku.com/buttons/peers/peerjs-server
@@ -475,7 +482,7 @@ function createPeerConnection(destId) {
 	});
 
 	P.on('open', () => {
-		const dataConn = P.connect(destId.replace('-', ''), {
+		const dataConn = P.connect(destId.replace('-', '').toUpperCase(), {
 			reliable: true,
 			metadata: {
 				PIN: UI.inputPIN.value,

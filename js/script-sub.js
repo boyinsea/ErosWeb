@@ -401,8 +401,8 @@ function createPeerConnection(name) {
 		console.log(`Data Connection: ${dataConnection.connectionId}`);
 
 		// If a data connection is already open to another Dom, reply with an error
-		// as soon as the connection opens.  This will case the remote DOM to close
-		// the connection.
+		// when the connection opens.  This will cause the remote DOM to close the
+		// connection.  Do not respond to any other events in this case.
 		if (STATE.dataConn) {
 
 			dataConnection.on('open', () => {
@@ -626,7 +626,6 @@ async function clickShare() {
 		// Sharing -> not sharing
 		UI.localVideo.pause();
 		AudioUI.stop(STATE.videoShare);
-		// STATE.videoShare.getTracks().forEach(track => { track.stop(); });
 		STATE.videoShare = null;
 		UI.localVideo.srcObject = null;
 		UI.localVideo.nextElementSibling.hidden = false;

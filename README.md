@@ -8,7 +8,7 @@ First, negotiate a scene via phone, chat, FaceTime, email, favorite app, etc.  T
 |subs – [*Present yourself for remote control*](/sub.html)|Doms – [*Remote-control a sub's ET-312*](/Dom.html)|
 |:--:|:--:|
 |![ET-312](/assets/et312.jpg) + ![sub mode](/assets/sub-image.png)|![Dom mode](/assets/Dom-image.png)|
-|[Connect][connect] your ET-312 to a Mac or Windows PC, then use [Google Chrome][chrome] or Microsoft Edge to open the [sub page](/sub.html) and start a scene.  Send the session link or Session ID and PIN to the Dom (or, for the adventurous, publish it online!)|Use a Mac, Windows PC, or iPad to control the scene via a link from the sub, or enter a Session ID and PIN on the [Dom page](/Dom.html). _Note that the Session ID is **cAsE-sEnSiTiVe**!_|
+|[Connect][connect] your ET-312 to a Mac or Windows PC, then use [Google Chrome][chrome] or Microsoft Edge to open the [sub page](/sub.html) and start a scene.  Send the session link or Session ID and PIN to the Dom (or, for the adventurous, publish it online!)|Use a Mac, Windows PC, or iPad to control the scene via a link from the sub, or enter a Session ID and PIN on the [Dom page](/Dom.html).|
 
 &#x1F4D8; Consult the [How-To Guide](/ErosWeb/documentation.html) for more information and detailed instructions.
 

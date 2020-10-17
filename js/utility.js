@@ -93,10 +93,13 @@ class EWUtility {
 	}
 
 	// Special handling for the 'input' event:
-	//	-	Limit changes resulting from the user clicking on the slider track
-	//		to one step at a time (to prevent large jumps in value).
+	//	-	Enable "single step" mode to limit changes to one step
+	//		at a time when the user clicks on the slider track
+	//		(prevents sudden changes in value).
 	//	-	Enforce limits, if any, on the maximum value.
-	//	-	Update "badge" UI if applicable.
+	//	-	Update "badge" UI when applicable.
+	//	-	Special handling for the way Firefox handles
+	//		click events in range controls.
 	static _handleSliderInput(e) {
 
 		const range = e.target;
@@ -139,8 +142,8 @@ class EWUtility {
 		range.was = range.value;
 	}
 
-	// Generate a unique-enough Session ID based on current time
-	// and scene name.
+	// Generate a unique-enough Session ID based
+	// on current time and scene name.
 	static getSessionId(name) {
 		let hash = Date.now(),
 			i = 0;
@@ -148,8 +151,7 @@ class EWUtility {
 			hash = ((hash << 5) - hash) + name.charCodeAt(i++);
 			hash |= 0;
 		}
-		return Math.abs(hash)
-			.toString(36);
+		return Math.abs(hash).toString(36).toUpperCase();
 	}
 
 	// Format an ID string into chunks
@@ -161,8 +163,7 @@ class EWUtility {
 			buffer.push(char);
 			if (0 == (++i % 3)) buffer.push('-');
 		}
-		return buffer.join('')
-			.replace(/\-$/, '');
+		return buffer.join('').replace(/\-$/, '');
 	}
 }
 
