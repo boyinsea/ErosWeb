@@ -85,7 +85,7 @@ class ET312Server {
 		if ("ET312" != message[0]) return false;
 		const obj = message[1];
 		if (!ctl.connected) {
-			console.warn(`ET312 is not connected.  Message ignored`);
+			console.warn(message, `ET312 is not connected, message ignored.`);
 		} else {
 			for (const prop in obj) {
 				const arg = obj[prop];

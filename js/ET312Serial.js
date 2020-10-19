@@ -26,7 +26,18 @@ class ET312Serial extends ET312ControllerBase {
 			//
 			// This has to be done with a box command, as the "current running mode"
 			// address is read-only.  And there are many side effects.
-			setMode: async (newMode) => {
+			//
+			//	|n| is either an integer mode number, or an object of the form
+			//		{mode: n, MA: m}	where "m" is the desired setting for the
+			//							multi-adjust control in the new mode.
+			setMode: async (n) => {
+					let newMode, ma;
+
+					if (n instanceof Object) {
+						newMode = n.mode;
+						ma = n.MA;
+					} else newMode = n;
+
 					if (!Number.isInteger(newMode)) {
 						throw new Error(`Cannot set mode ${newMode}.  Expected integer, got ${typeof(newMode)}.`);
 					}
@@ -41,17 +52,22 @@ class ET312Serial extends ET312ControllerBase {
 
 					// Changing the mode also changes the multi-adjust range and current value
 					// (each program has a different m-a range).  If front-panel controls are
-					// disabled (e.g., box is being remote controlled), we reset the range
-					// to it's midpoint to prevent unintended consequences.
+					// disabled (e.g., box is being remote controlled), we use the last-used
+					// value supplied by the user (if any), or else reset the M/A range to it's
+					// midpoint to prevent unintended consequences.
 					//
 					//		An alternative implementation would be to calculate the scale
 					//		position of the (virtual) "knob" as it is before the mode change,
 					//		then set the same position relative to the range of the new mode.
 					//		This would more closely mimic the hardware behavior.
 					if (0x01 & result.SYSTEMFLAGS) {
-						let newMAVALUE = Math.round((result.MAHIGH + result.MALOW) / 2);
+						if (ma && ((ma > result.MAHIGH) || (ma < result.MALOW))) {
+							console.warn(`Multi-adjust value of ${newMAVALUE} is outside the range of ${result.MALOW}-${result.MAHIGH} for mode ${result.MODENUM}.`);
+							ma = null;
+						}
+						let newMAVALUE = ma ? ma : Math.round((result.MAHIGH + result.MALOW) / 2);
 						await this._writeAddress(this.DEVICE.MAVALUE, [newMAVALUE]);
-						result.MAVALUE = newMAVALUE;	// Fix up MAVALUE in result data returned so UI is correct
+						result.MAVALUE = newMAVALUE; // Fix up MAVALUE in result data returned so UI is correct
 					}
 
 					// ET-312 won't update it's display on a mode change command, so we need
@@ -188,6 +204,13 @@ class ET312Serial extends ET312ControllerBase {
 		}
 	}
 
+	// Return the current box mode name
+	get mode() {
+		if (!this.connected) return;
+		this._exec(() => this._readAddress(this.DEVICE.MODENUM))
+			.then(m => { return this.MODES[m]; });
+	}
+
 	// Request a snapshot of box status.
 	async requestStatus(detail) {
 		const result = (this.connected) ? await this._exec(() => this._readInfo(detail)) : false;
@@ -238,7 +261,7 @@ class ET312Serial extends ET312ControllerBase {
 			else
 				newFlags &= ~0x01;
 			if (newFlags != flags) await this._writeAddress(this.DEVICE.SYSTEMFLAGS, [newFlags]);
-			info = await this._readInfo(true); 			// Get comprehensive report of box status.
+			info = await this._readInfo(true); // Get comprehensive report of box status.
 		} finally {
 			release();
 		}
@@ -278,9 +301,9 @@ class ET312Serial extends ET312ControllerBase {
 	// Open the serial port and associated reader
 	async _connectPort() {
 		await this._port.open({
-			baudrate: 19200,// Chrome uses this.
-			baudRate: 19200	// Edge uses this.
-		 });
+			baudrate: 19200, // Chrome uses this.
+			baudRate: 19200 // Edge uses this.
+		});
 		this._reader = this._port.readable.getReader();
 		this.count = 0;
 	}
@@ -509,7 +532,7 @@ class ET312Serial extends ET312ControllerBase {
 	 * @private
 	 */
 	async _handshake(minBytes = 1) {
-		let data, key_reset = false;	// Has encryption key been reset during this process?
+		let data, key_reset = false; // Has encryption key been reset during this process?
 		while (!key_reset) {
 			let sync_byte = 0x00;
 			if (this._key)

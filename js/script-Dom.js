@@ -133,7 +133,13 @@ document.addEventListener("DOMContentLoaded", () => {
 			// with an info message containing updated
 			// mode, MA setting and range values.
 			if (0 == newMode) STATE.et312.execute('stop');
-			else STATE.et312.execute('setMode', newMode);
+			else {
+				// Retrieve last-used MA setting for this mode, if any
+				const lastMAValues = JSON.parse(localStorage.getItem('lastMA')) || {};
+				const ma = lastMAValues[STATE.et312.MODES[newMode]];
+				if (ma) newMode = { mode: newMode, MA: ma };
+				STATE.et312.execute('setMode', newMode);
+			}
 		}
 	});
 
@@ -145,18 +151,28 @@ document.addEventListener("DOMContentLoaded", () => {
 		t.nextElementSibling.classList.toggle('hidden', (t.scrollHeight - t.scrollTop === t.clientHeight));
 	});
 
-	UI.selSplitA.addEventListener("change", (e) => {
-		STATE.et312.setValue(STATE.et312.DEVICE.SPLITA, parseInt(e.currentTarget.value));
-	});
+	UI.selSplitA.addEventListener("change", e =>
+		STATE.et312.setValue(STATE.et312.DEVICE.SPLITA, parseInt(e.currentTarget.value))
+	);
 
-	UI.selSplitB.addEventListener("change", (e) => {
-		STATE.et312.setValue(STATE.et312.DEVICE.SPLITB, parseInt(e.currentTarget.value));
-	});
+	UI.selSplitB.addEventListener("change", e =>
+		STATE.et312.setValue(STATE.et312.DEVICE.SPLITB, parseInt(e.currentTarget.value))
+	);
 
 	// *** MULTI-ADJUST AND OUTPUT LEVELS ***
 	EWUtility.configureSlider(UI.levelMultiAdjust, { inverse: true });
 	UI.levelMultiAdjust.addEventListener("change", (e) => {
-		STATE.et312.setValue(STATE.et312.DEVICE.MAVALUE, e.currentTarget.getValue());
+		const ma = e.currentTarget.getValue();
+		STATE.et312.setValue(STATE.et312.DEVICE.MAVALUE, ma);
+
+		// Save last-used MA setting for this mode, if any
+		const lastMAValues = JSON.parse(localStorage.getItem('lastMA')) || {},
+			mode = STATE.et312.mode;
+
+		if (mode) {
+			lastMAValues[mode] = ma;
+			localStorage.setItem('lastMA', JSON.stringify(lastMAValues));
+		}
 	});
 
 	EWUtility.configureSlider(UI.levelA, { singleStep: true });
@@ -482,13 +498,14 @@ function createPeerConnection(destId) {
 	});
 
 	P.on('open', () => {
-		const dataConn = P.connect(destId.replace('-', '').toUpperCase(), {
-			reliable: true,
-			metadata: {
-				PIN: UI.inputPIN.value,
-				sceneName: UI.inputName.value,
-			}
-		});
+		const dataConn = P.connect(destId.replace('-', '')
+			.toUpperCase(), {
+				reliable: true,
+				metadata: {
+					PIN: UI.inputPIN.value,
+					sceneName: UI.inputName.value,
+				}
+			});
 
 		dataConn.on('open', () => {
 			dataConn.peerConnection.addEventListener('connectionstatechange', (e) => {

@@ -115,6 +115,11 @@ class ET312ControllerBase extends EventTarget {
 		throw new Error('Subclass should implement get connected()!');
 	}
 
+	// Return the name of the current box mode.
+	get mode() {
+		throw new Error('Subclass should implement get mode()!');
+	}
+
 	// Request a snapshot of box status.  If “detailed” is TRUE, a comprehensive status report is returned.
 	// Otherwise, returns a brief status report containing only variables that are likely to change.
 	async requestStatus(detailed) {
